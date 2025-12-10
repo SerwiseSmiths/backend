@@ -90,3 +90,13 @@ export const validateRefCode = async (
 
   res.status(userResult.statusCode).json(userResult);
 };
+
+export const getAllUsers = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction
+) => {
+  const usersResult = await userService.retrieveAllUsers();
+
+  res.status(usersResult.statusCode).json(usersResult);
+};

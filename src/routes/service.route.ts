@@ -1,12 +1,12 @@
-import { Router } from "express";
-import { ServiceController } from "../controllers/service.contoller";
+import * as express from "express";
+import * as serviceController from "../controllers/service.contoller";
 
-const router = Router();
+const router = express.Router();
 
-router.get("/", ServiceController.getAll);
-router.get("/:id", ServiceController.getOne);
-router.post("/", ServiceController.create);
-router.put("/:id", ServiceController.update);
-router.delete("/:id", ServiceController.delete);
+router.post("/", serviceController.createService);
+router.get("/", serviceController.getAllServices);
+router.get("/:id", serviceController.getServiceById);
+router.patch("/:id", serviceController.updateService);
+router.delete("/:id", serviceController.deleteService);
 
 export default router;

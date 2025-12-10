@@ -1,26 +1,46 @@
-import { Request, Response } from "express";
-import { ServiceService } from "../services/service.service";
+import * as serviceService from "../services/service.service";
 
-const service = new ServiceService();
-
-export class ServiceController {
-  static async getAll(req: Request, res: Response) {
-    res.json(await service.getAll());
+export const createService = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const result = await serviceService.createService(req.body);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async getOne(req: Request, res: Response) {
-    res.json(await service.getOne(req.params.id!));
+export const getAllServices = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const result = await serviceService.getAllServices();
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async create(req: Request, res: Response) {
-    res.json(await service.create(req.body));
+export const getServiceById = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const result = await serviceService.getServiceById(req.params.id);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async update(req: Request, res: Response) {
-    res.json(await service.update(req.params.id!, req.body));
+export const updateService = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const result = await serviceService.updateService(req.params.id, req.body);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async delete(req: Request, res: Response) {
-    res.json(await service.delete(req.params.id!));
+export const deleteService = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const result = await serviceService.deleteService(req.params.id);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
   }
-}
+};

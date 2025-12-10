@@ -7,6 +7,7 @@ import { uploadToCloudinary } from "../utils/upload.util";
 import { cloudinaryUploadMiddleware } from "../middlewares/cloudinaryUpload.middleware";
 
 router.post("/", cloudinaryUploadMiddleware, userContoller.registerUser);
+router.get("/", userContoller.getAllUsers);
 router.get("/refCode/:refCode/verify", userContoller.validateRefCode);
 
 export default router;

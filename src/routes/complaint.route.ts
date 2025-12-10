@@ -1,12 +1,18 @@
-import { Router } from "express";
-import { ComplaintController } from "../controllers/complaint.contoller";
+// routes/complaint.route.ts
+import * as express from "express";
+import * as complaintController from "../controllers/complaint.contoller";
+import { auth } from "../middlewares/auth.middleware";
 
-const router = Router();
+const router = express.Router();
 
-router.get("/", ComplaintController.getAll);
-router.get("/:id", ComplaintController.getOne);
-router.post("/", ComplaintController.create);
-router.put("/:id", ComplaintController.update);
-router.delete("/:id", ComplaintController.delete);
+router.post("/", auth, complaintController.createComplaint);
+router.get("/", complaintController.listComplaints);
+router.get("/:id", complaintController.getComplaint);
+router.put("/:id", complaintController.updateComplaint);
+router.delete("/:id", complaintController.deleteComplaint);
+
+// Additional
+router.patch("/:id/stage", complaintController.updateStage);
+router.patch("/:id/quote", complaintController.addQuote);
 
 export default router;

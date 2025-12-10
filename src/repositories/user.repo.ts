@@ -89,3 +89,17 @@ export const retrieveUserByRefCode = async (
     return null;
   }
 };
+
+export const retrieveAllUsers = async (
+): Promise<UserDocument[] | null> => {
+  try {
+
+    // Find the user by referenceCode
+    const user = await UserModel.find();
+
+    return user;
+  } catch (error) {
+    console.error("Error retrieving user by reference code:", error);
+    return null;
+  }
+};

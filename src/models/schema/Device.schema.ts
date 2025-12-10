@@ -1,7 +1,7 @@
 import { Schema, model, Document } from "mongoose";
-import { DeviceDocument } from "../../types/device.type";
+import { IDevice } from "../../types/device.type";
 
-const DeviceSchema = new Schema<DeviceDocument>(
+const DeviceSchema = new Schema<IDevice>(
   {
     name: { type: String, required: true, trim: true },
 
@@ -30,4 +30,4 @@ const DeviceSchema = new Schema<DeviceDocument>(
   { timestamps: true }
 );
 
-export default model<DeviceDocument>("device", DeviceSchema);
+export default model<IDevice>("Device", DeviceSchema);

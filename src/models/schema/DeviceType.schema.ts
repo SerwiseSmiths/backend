@@ -11,7 +11,7 @@ const DeviceTypeSchema = new Schema<DeviceTypeDocument>(
 );
 
 const DeviceTypeModel = model<DeviceTypeDocument>(
-  "deviceType",
+  "DeviceType",
   DeviceTypeSchema
 );
 

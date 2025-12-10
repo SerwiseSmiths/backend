@@ -10,14 +10,24 @@ export const cloudinaryUploadMiddleware = [
   upload.single("file"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.file)
-        return res.status(400).json({ message: "No file uploaded" });
+      console.log(req)
+      console.log("File received:", req.file);
+      let result:any;
+      if (!req.file){
+        // result = {
+        //   secure_url:"url",
+        //   public_id:"id",
+        //   }
+        }
+        // return res.status(400).json({ message: "No file uploaded" });}
+      else{
 
       // Upload to Cloudinary
-      const result = await uploadToCloudinary(req.file.path, "myApp");
+      result = await uploadToCloudinary(req.file.path, "myApp");
 
       // remove temp file after upload
       fs.unlinkSync(req.file.path);
+      }
 
       // attach cloudinary response to req
       (req as any).cloudinary = {

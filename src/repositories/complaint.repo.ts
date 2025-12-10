@@ -1,27 +1,31 @@
+// repositories/complaint.repo.ts
 import { ComplaintModel } from "../models/schema/Complaint.schema";
+import { IComplaint } from "../types/comlpaint.type";
+// import { mongodbId } from "../types/common";
 
-export class ComplaintRepo {
-  findAll() {
-    return ComplaintModel.find()
-      .populate("quote")
-      .populate("parent");
-  }
+export const createComplaint = async (
+  data: Partial<IComplaint>
+) => {
+  const complaint = new ComplaintModel(data);
+  await complaint.save();
+  return complaint;
+};
 
-  findById(id: string) {
-    return ComplaintModel.findById(id)
-      .populate("quote")
-      .populate("parent");
-  }
+export const findComplaintById = async (id: mongodbId) => {
+  return await ComplaintModel.findById(id);
+};
 
-  create(data: any) {
-    return ComplaintModel.create(data);
-  }
+export const updateComplaint = async (
+  id: mongodbId,
+  data: Partial<IComplaint>
+) => {
+  return await ComplaintModel.findByIdAndUpdate(id, data, { new: true });
+};
 
-  update(id: string, data: any) {
-    return ComplaintModel.findByIdAndUpdate(id, data, { new: true });
-  }
+export const deleteComplaint = async (id: mongodbId) => {
+  return await ComplaintModel.findByIdAndDelete(id);
+};
 
-  delete(id: string) {
-    return ComplaintModel.findByIdAndDelete(id);
-  }
-}
+export const listComplaints = async () => {
+  return await ComplaintModel.find().populate("user provider address device quote parent");
+};

@@ -1,6 +1,6 @@
 import {Schema} from "mongoose";
 
-export interface DeviceDocument extends Document {
+export interface IDevice extends Document {
   name: string;
   deviceType: Schema.Types.ObjectId;
   description?: string;

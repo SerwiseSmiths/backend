@@ -13,6 +13,8 @@ import geocodeRoutes from "./routes/geocode.route";
 import complaintRoutes from "./routes/complaint.route";
 import serviceRoutes from "./routes/service.route";
 import quoteRoutes from "./routes/quote.route";
+import subscriptionRoutes from "./routes/subscription.route";
+import paymentRoutes from "./routes/payment.route";
 
 const app: Application = express();
 app.use(morgan("dev"));
@@ -29,7 +31,9 @@ app.use(`${BASE_URL}/geocode`, geocodeRoutes);
 app.use(`${BASE_URL}/service`, serviceRoutes);
 app.use(`${BASE_URL}/quote`, quoteRoutes);
 app.use(`${BASE_URL}/complaint`, complaintRoutes);
+app.use(`${BASE_URL}/subscription`, subscriptionRoutes);
+app.use(`${BASE_URL}/payment`, paymentRoutes);
 
-app.use(errorHandler);
+// app.use(errorHandler);
 
 export default app;

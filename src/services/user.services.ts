@@ -88,3 +88,12 @@ export async function retriveUserByRefCode(_refCode: string) {
     "Refrence Code verified sucessfully"
   );
 }
+
+export async function retrieveAllUsers(): Promise<ApiSuccessType<{user : UserDocument[]}>> {
+  const users = (await userRepo.retrieveAllUsers()) ?? [];
+  return new ApiSuccess<{user : UserDocument[]}>(
+    200,
+    "Users retrived successfully",
+    { user: users }
+  );
+}

@@ -1,26 +1,46 @@
-import { Request, Response } from "express";
-import { QuoteService } from "../services/quote.service";
+import * as quoteService from "../services/quote.service";
 
-const quote = new QuoteService();
-
-export class QuoteController {
-  static async getAll(req: Request, res: Response) {
-    res.json(await quote.getAll());
+export const createQuote = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const result = await quoteService.createQuote(req.body);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async getOne(req: Request, res: Response) {
-    res.json(await quote.getOne(req.params.id!));
+export const getAllQuotes = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const result = await quoteService.getAllQuotes();
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async create(req: Request, res: Response) {
-    res.json(await quote.create(req.body));
+export const getQuoteById = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const result = await quoteService.getQuoteById(req.params.id);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async update(req: Request, res: Response) {
-    res.json(await quote.update(req.params.id!, req.body));
+export const updateQuote = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const result = await quoteService.updateQuote(req.params.id, req.body);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async delete(req: Request, res: Response) {
-    res.json(await quote.delete(req.params.id!));
+export const deleteQuote = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const result = await quoteService.deleteQuote(req.params.id);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
   }
-}
+};
