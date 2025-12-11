@@ -1,6 +1,6 @@
 import "dotenv/config";
 import app from "./app";
-import {connectPrisma} from "./config/prisma.config";
+// import {connectPrisma} from "./config/prisma.config";
 import { connectDB } from "./config/mongo.config";
 
 
