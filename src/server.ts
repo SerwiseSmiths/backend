@@ -7,7 +7,7 @@ import { connectDB } from "./config/mongo.config";
 const PORT = process.env.PORT || 3000;
 
 connectDB();
-connectPrisma();
+// connectPrisma();
 
 
 app.listen(PORT, () => {
