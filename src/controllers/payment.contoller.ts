@@ -38,4 +38,8 @@ class PaymentController {
   }
 }
 
+// export const myfunction = () => {
+//   console.log("this  is my function")
+// }
+
 export default new PaymentController();

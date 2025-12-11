@@ -1,5 +1,5 @@
 import DeviceModel from "../models/schema/Device.schema";
-import { DeviceDocument } from "../types/device.type";
+import { IDevice as DeviceDocument } from "../types/device.type";
 
 export const createDevice = async (data: Partial<DeviceDocument>) => {
   const dev = new DeviceModel(data);
