@@ -1,45 +1,48 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import paymentService from "../services/payment.service";
-import { verifySignature } from "../utils/verifySignature.util";
+import ApiSuccess from "../utils/api/ApiSuccess.api.util";
+import ApiError from "../utils/api/ApiError.api.util";
 
 class PaymentController {
-  async createPayment(req: Request, res: Response) {
-    const { userId, amount, type } = req.body;
 
-    const order = await paymentService.createOrder({
-      amount,
-      userId,
-      type,
-    });
+  // 1. Create Order
+  async createPayment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { amount, type, subscriptionId, complaintId } = req.body;
+      const userId = (req as any).user?._id || (req as any).user?.id; // Authed User
 
-    return res.json({
-      success: true,
-      orderId: order.orderId,
-      paymentSessionId: order.paymentSessionId,
-    });
+      if (!userId) throw new ApiError(401, "Unauthorized");
+
+      const order = await paymentService.createOrder({
+        amount,
+        userId,
+        type, // 'wallet_recharge', 'order_payment', 'subscription', 'complaint'
+        subscriptionId,
+        complaintId,
+      });
+
+      res.status(200).json(new ApiSuccess(200, "Order created successfully", order));
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async webhook(req: Request, res: Response) {
-    const signature = req.headers["x-webhook-signature"] as string;
+  // 2. Verify Payment (Called from Frontend after success)
+  async verifyPayment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-    if (!verifySignature(signature, req.body)) {
-      return res.status(400).json({ message: "Invalid signature" });
+      const result = await paymentService.handlePaymentSuccess(
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature
+      );
+
+      res.status(200).json(new ApiSuccess(200, "Payment verified successfully", result));
+    } catch (error) {
+      next(error);
     }
-
-    const { order_id, event, ...others } = req.body;
-
-    let status = "PENDING";
-    if (event === "order.paid") status = "SUCCESS";
-    if (event === "order.failed") status = "FAILED";
-
-    await paymentService.updateTransactionStatus(order_id, status, others);
-
-    return res.json({ message: "Webhook processed" });
   }
 }
-
-// export const myfunction = () => {
-//   console.log("this  is my function")
-// }
 
 export default new PaymentController();

@@ -10,7 +10,8 @@ export const createComplaint = async (
   data: Partial<IComplaint>,
   userId: mongodbId
 ) => {
-  data.user = userId;
+  console.log("Creating complaint with data:", data, "for user:", userId);
+  data["user"] = userId;
 
   if (!data.provider) {
     const provider = await getAutoAssignedProvider();
@@ -65,3 +66,13 @@ export const addQuote = async (id: mongodbId, quoteId: mongodbId) => {
 
   return new ApiSuccess(200, "Quote added", { complaint: updated });
 };
+
+export const listComplaintsByUser = async (userId: mongodbId) => {
+  const complaints = await complaintRepo.listComplaintsByUser(userId);
+  return new ApiSuccess(200, "User complaints fetched", { complaints });
+}
+
+export const listComplaintsByProvider = async (providerId: mongodbId) => {
+  const complaints = await complaintRepo.listComplaintsByProvider(providerId);
+  return new ApiSuccess(200, "Provider complaints fetched", { complaints });
+}

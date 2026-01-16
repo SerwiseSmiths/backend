@@ -7,6 +7,7 @@ import {
   retrieveAllDevices,
   updateDeviceById,
   softDeleteDevice,
+  retrieveDevicesByUserId
 } from "../repositories/device.repo";
 
 export const create = async (data: any) => {
@@ -50,4 +51,9 @@ export const softDelete = async (id: string) => {
 
   const deleted = await softDeleteDevice(id);
   return new ApiSuccess(200, "Device deleted", { device: deleted });
+};
+
+export const getDevicesByUser = async (userId: string) => {
+  const devices = await retrieveDevicesByUserId(userId);
+  return devices;
 };

@@ -14,6 +14,10 @@ export const retrieveDeviceById = async (id: string) => {
     .populate("address");  // <-- updated
 };
 
+export const retrieveDevicesByUserId = async (userId: string) => {
+  return DeviceModel.find({ user: userId, isDeleted: false });
+}
+
 export const retrieveAllDevices = async () => {
   return DeviceModel.find({ isDeleted: false })
     .populate("deviceType")

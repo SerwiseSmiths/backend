@@ -3,7 +3,7 @@ import * as complaintService from "../services/complaint.service";
 
 export const createComplaint = async (req: ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
   try {
-    const userId = req.user._id; // from auth middleware
+    const userId = req.user.id; // from auth middleware
     const result = await complaintService.createComplaint(req.body, userId);
     res.status(result.statusCode).json(result);
   } catch (err) {

@@ -29,3 +29,11 @@ export const deleteComplaint = async (id: mongodbId) => {
 export const listComplaints = async () => {
   return await ComplaintModel.find().populate("user provider address device quote parent");
 };
+
+export const listComplaintsByUser = async (userId: mongodbId) => {
+  return await ComplaintModel.find({ user: userId }).populate("user provider address device quote parent");
+};
+
+export const listComplaintsByProvider = async (providerId: mongodbId) => {
+  return await ComplaintModel.find({ provider: providerId }).populate("user provider address device quote parent");
+};

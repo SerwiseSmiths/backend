@@ -17,14 +17,16 @@ export async function createSubscription(
     remaining_service: number;
     payment_remaining: number;
     auto_renew: boolean;
+    plan: string;
+    startDate: Date;
   }
 ): Promise<ApiSuccess<ISubscription>> {
-  const { remaining_service, payment_remaining, auto_renew } = body;
+  const { remaining_service, payment_remaining, auto_renew, startDate, plan } = body;
 
   if (!remaining_service || remaining_service <= 0)
     throw new ApiError(400, "Invalid remaining_service");
 
-  const startDate = new Date();
+  // const startDate = new Date();
   const monthsToAdd = remaining_service / 12;
   const endDate = new Date(startDate);
   endDate.setMonth(startDate.getMonth() + monthsToAdd);
@@ -41,6 +43,7 @@ export async function createSubscription(
     auto_renew: auto_renew ?? false,
 
     payment_remaining,
+    type: plan,
   };
 
   const newSub = await subRepo.createSubscription(subData);

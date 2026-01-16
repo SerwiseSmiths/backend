@@ -15,6 +15,9 @@ import serviceRoutes from "./routes/service.route";
 import quoteRoutes from "./routes/quote.route";
 import subscriptionRoutes from "./routes/subscription.route";
 import paymentRoutes from "./routes/payment.route";
+import selfRoutes from "./routes/self.route";
+import walletRoutes from "./routes/wallet.route";
+import notificationRoutes from "./routes/notification.route";
 
 const app: Application = express();
 app.use(morgan("dev"));
@@ -33,7 +36,9 @@ app.use(`${BASE_URL}/quote`, quoteRoutes);
 app.use(`${BASE_URL}/complaint`, complaintRoutes);
 app.use(`${BASE_URL}/subscription`, subscriptionRoutes);
 app.use(`${BASE_URL}/payment`, paymentRoutes);
-
+app.use(`${BASE_URL}/me`, selfRoutes);
+app.use(`${BASE_URL}/wallet`, walletRoutes);
+app.use(`${BASE_URL}/notification`, notificationRoutes);
 // app.use(errorHandler);
 
 export default app;

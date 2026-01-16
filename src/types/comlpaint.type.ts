@@ -7,13 +7,13 @@ import { IDevice } from "./device.type";
 
 export interface IComplaint extends Document {
   title: string;
-  user: IUser;       
+  user: mongodbId;       
   provider: mongodbId | null;   
-  address: IAddress;
+  address: mongodbId;
   stage: complaintStages;
-  parent: IComplaint | null;
-  quote: IQuote | null;
-  device: IDevice | null;
+  parent: mongodbId | null;
+  quote: mongodbId | null;
+  device: mongodbId | null;
 }
 
 export type ComplaintDocument = HydratedDocument<IComplaint>;

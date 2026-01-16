@@ -1,7 +1,5 @@
 import * as addressService from "../services/address.service";
 
-
-
 export const createAddress = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
   try {
     req.body.user = req.user.id;

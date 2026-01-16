@@ -10,6 +10,7 @@ export interface ISubscription extends Document {
   state: "active" | "expired" | "completed" | "cancelled" | "pending";
   auto_renew: boolean;
   payment_remaining: number;
+  type: string;
 }
 
 const subscriptionSchema = new Schema<ISubscription>({
@@ -30,6 +31,8 @@ const subscriptionSchema = new Schema<ISubscription>({
   auto_renew: { type: Boolean, default: false },
 
   payment_remaining: { type: Number, required: true },
+
+  type: { type: String, required: true, enum: ["A3","A4","A6","B3","B4","B6","C"] },
 });
 
 export const SubscriptionModel = model<ISubscription>(
