@@ -22,6 +22,7 @@ export enum WalletLedgerSource {
   REFUND = "refund",
   ADMIN_ADJUSTMENT = "admin_adjustment",
   CASHBACK = "cashback",
+  TRASFER = "transfer"
 }
 
 export interface IWalletLedger {
@@ -33,7 +34,7 @@ export interface IWalletLedger {
   openingBalance: number;
   closingBalance: number;
   refId?: string; // Reference ID (Order ID, etc.)
-  meta?:Record<string, any>;
+  meta?: Record<string, any>;
 }
 
 export interface WalletLedgerDocument extends IWalletLedger, Document {

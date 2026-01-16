@@ -35,6 +35,42 @@ export const getWallet = async (
     }
 };
 
+export const createWallet = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            throw new ApiError(400, "User ID is required");
+        }
+
+        const result = await walletService.createWallet(userId);
+        res.status(result.statusCode).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getWalletByUserId = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) {
+            throw new ApiError(400, "User ID is required");
+        }
+
+        const result = await walletService.getWallet(userId);
+        res.status(result.statusCode).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const creditWallet = async (
     req: Request,
     res: Response,

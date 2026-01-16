@@ -12,6 +12,10 @@ import {
 // ==========================================
 
 export const createWallet = async (userId: string): Promise<WalletDocument> => {
+    const existingWallet = await WalletModel.findOne({ user: userId });
+    if (existingWallet) {
+        return existingWallet as unknown as WalletDocument;
+    }
     const wallet = new WalletModel({
         user: userId,
         balance: 0,

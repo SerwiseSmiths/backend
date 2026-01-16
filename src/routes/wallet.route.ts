@@ -30,7 +30,9 @@ import { auth } from "../middlewares/auth.middleware";
 // OR better, I will invoke `find_by_name` in the next turn and then update this file.
 // Actually, I can just leave a TODO comment.
 
-router.get("/",auth, walletController.getWallet);
+router.get("/", auth, walletController.getWallet);
+router.post("/create", auth, walletController.createWallet);
+router.get("/user/:userId", auth, walletController.getWalletByUserId);
 router.post("/credit", auth, walletController.creditWallet);
 router.post("/debit", auth, walletController.debitWallet);
 router.get("/history", auth, walletController.getHistory);

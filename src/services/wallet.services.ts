@@ -1,4 +1,5 @@
 import * as walletRepo from "../repositories/wallet.repo";
+import * as userRepo from "../repositories/user.repo";
 import * as mongoose from "mongoose";
 import ApiError from "../utils/api/ApiError.api.util";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
@@ -17,6 +18,11 @@ export const getWallet = async (userId: string) => {
     }
 
     return new ApiSuccess(200, "Wallet fetched successfully", { wallet });
+};
+
+export const createWallet = async (userId: string) => {
+    const wallet = await walletRepo.createWallet(userId);
+    return new ApiSuccess(201, "Wallet created successfully", { wallet });
 };
 
 export const creditWallet = async (
@@ -59,7 +65,7 @@ export const creditWallet = async (
                 amount,
                 openingBalance,
                 closingBalance,
-                refId: refId || undefined,
+                ...(refId && { refId }),
                 meta,
             },
             session
@@ -101,7 +107,7 @@ export const debitWallet = async (
         const openingBalance = wallet.balance;
         const closingBalance = openingBalance - amount;
 
-        // Update Wallet Balance
+        // Update Wallet Balance (debit from sender)
         const updatedWallet = await walletRepo.updateWalletBalance(
             userId,
             -amount, // Negative amount for debit
@@ -112,7 +118,7 @@ export const debitWallet = async (
             throw new ApiError(500, "Failed to update wallet balance");
         }
 
-        // Create Ledger Entry
+        // Create Ledger Entry for sender (debit)
         await walletRepo.createLedgerEntry(
             {
                 wallet: updatedWallet._id.toString(),
@@ -122,11 +128,60 @@ export const debitWallet = async (
                 amount,
                 openingBalance,
                 closingBalance,
-                refId: refId || undefined,
+                ...(refId && { refId }),
                 meta,
             },
             session
         );
+
+        // If source is transfer and refId is provided (recipient's phone number),
+        // credit the recipient's wallet
+        if (source === WalletLedgerSource.TRASFER && refId) {
+            const recipientUser = await userRepo.retriveUserByPhoneNo(refId);
+            if (!recipientUser) {
+                throw new ApiError(404, "Recipient user not found with the provided phone number");
+            }
+
+            // Get or create recipient's wallet
+            let recipientWallet = await walletRepo.getWalletByUserId(recipientUser._id.toString());
+            if (!recipientWallet) {
+                recipientWallet = await walletRepo.createWallet(recipientUser._id.toString());
+            }
+
+            const recipientOpeningBalance = recipientWallet.balance;
+            const recipientClosingBalance = recipientOpeningBalance + amount;
+
+            // Update recipient's wallet balance
+            const updatedRecipientWallet = await walletRepo.updateWalletBalance(
+                recipientUser._id.toString(),
+                amount,
+                session
+            );
+
+            if (!updatedRecipientWallet) {
+                throw new ApiError(500, "Failed to update recipient wallet balance");
+            }
+
+            // Create Ledger Entry for recipient (credit)
+            await walletRepo.createLedgerEntry(
+                {
+                    wallet: updatedRecipientWallet._id.toString(),
+                    user: recipientUser._id.toString(),
+                    type: WalletLedgerType.CREDIT,
+                    source: WalletLedgerSource.TRASFER,
+                    amount,
+                    openingBalance: recipientOpeningBalance,
+                    closingBalance: recipientClosingBalance,
+                    refId: userId, // Sender's user ID as reference
+                    meta: {
+                        ...(meta || {}),
+                        senderUserId: userId,
+                        transferType: "incoming",
+                    },
+                },
+                session
+            );
+        }
 
         await session.commitTransaction();
         session.endSession();
