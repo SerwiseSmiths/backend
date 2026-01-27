@@ -24,6 +24,32 @@ class NotificationRepository {
             .exec();
     }
 
+    async getUnseenNotificationCount(userId: string): Promise<number> {
+        return await NotificationModel.countDocuments({
+            $or: [
+                { target: "ALL" },
+                { target: "USER", userId: userId }
+            ],
+            isRead: false
+        });
+    }
+
+    async markAsRead(notificationId: string, userId: string): Promise<INotification | null> {
+        return await NotificationModel.findOneAndUpdate(
+            {
+                _id: notificationId,
+                $or: [
+                    { target: "ALL" },
+                    { target: "USER", userId: userId }
+                ]
+            },
+            { isRead: true },
+            { new: true }
+        );
+    }
+
+
+
     // --- Device Token CRUD ---
 
     async registerToken(data: Partial<IDeviceToken>): Promise<IDeviceToken | null> {

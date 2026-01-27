@@ -53,9 +53,10 @@ curl -X GET "http://localhost:3000/api/v2/notification/my-notifications?limit=10
 **Body Parameters:**
 - `title` (string, required)
 - `body` (string, required)
-- `type` (string, required): e.g., "GENERAL", "PROMOTION"
-- `target` (string, required): "INDIVIDUAL", "GROUP", "ALL"
-- `userId` (string, optional): Required if target is "INDIVIDUAL"
+- `type` (string, required): "Promotional", "Service", "Circles", "Security"
+- `target` (string, required): "ALL", "USER", "GROUP"
+- `userId` (string, optional): Required if target is "USER"
+
 - `metadata` (object, optional)
 
 **cURL:**
@@ -64,9 +65,38 @@ curl -X POST http://localhost:3000/api/v2/notification/send \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
+
     "title": "Welcome",
     "body": "Thanks for joining us!",
-    "type": "GENERAL",
+    "type": "Service",
     "target": "ALL"
   }'
 ```
+
+### Mark Notification as Read
+`PATCH /:id/read`
+
+Marks a notification as read for the authenticated user.
+
+**Headers:**
+- `Authorization: Bearer <TOKEN>`
+
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "message": "Notification marked as read",
+  "data": {
+    "_id": "678e...",
+    "isRead": true,
+    ...
+  }
+}
+```
+
+**cURL:**
+```bash
+curl -X PATCH http://localhost:3000/api/v2/notification/678e.../read \
+  -H "Authorization: Bearer <TOKEN>"
+```
+

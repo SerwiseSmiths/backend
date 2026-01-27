@@ -7,16 +7,30 @@ Base URL: `/api/v2/me`
 ### Get Home Stats
 `GET /home`
 
-Returns provider statistics and earnings.
+Returns essential user data for the home screen, including name, unseen notification count, and wallet balance.
 
 **Headers:**
 - `Authorization: Bearer <TOKEN>`
+
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "message": "Home details fetched successfully",
+  "data": {
+    "name": "Monil",
+    "notifications": 4,
+    "wallet": 300
+  }
+}
+```
 
 **cURL:**
 ```bash
 curl -X GET http://localhost:3000/api/v2/me/home \
   -H "Authorization: Bearer <TOKEN>"
 ```
+
 
 ### Get My Address
 `GET /address`

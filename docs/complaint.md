@@ -13,11 +13,16 @@ Base URL: `/api/v2/complaint`
 
 **Body Parameters:**
 - `title` (string, required)
-- `provider` (string, ObjectId, required): ID of the service provider (User)
 - `address` (string, ObjectId, required): ID of the address
-- `device` (string, ObjectId, optional): ID of the device if applicable
+- `deviceType` (string, ObjectId, required): ID of the device type
 - `parent` (string, ObjectId, optional): ID of parent complaint
 - `quote` (string, ObjectId, optional)
+
+> [!NOTE]
+> `device` ID is not taken during creation. It is added afterwards by the provider or through the update device endpoint.
+
+> [!NOTE]
+> **Provider is auto-assigned.** The system automatically assigns an available provider when the complaint is created. You do not need to (and cannot) specify a provider.
 
 **cURL:**
 ```bash
@@ -26,9 +31,8 @@ curl -X POST http://localhost:3000/api/v2/complaint \
   -H "Content-Type: application/json" \
   -d '{
     "title": "AC Not Cooling",
-    "provider": "<PROVIDER_USER_ID>",
     "address": "<ADDRESS_ID>",
-    "device": "<DEVICE_ID>"
+    "deviceType": "Air Conditioner"
   }'
 ```
 
@@ -94,6 +98,21 @@ curl -X PATCH http://localhost:3000/api/v2/complaint/<COMPLAINT_ID>/stage \
 curl -X PATCH http://localhost:3000/api/v2/complaint/<COMPLAINT_ID>/quote \
   -H "Content-Type: application/json" \
   -d '{
-    "quote": "<QUOTE_ID>"
+    "quoteId": "<QUOTE_ID>"
+  }'
+```
+
+### Add Device
+`PATCH /:id/device`
+
+**Body Parameters:**
+- `deviceId` (string, ObjectId)
+
+**cURL:**
+```bash
+curl -X PATCH http://localhost:3000/api/v2/complaint/<COMPLAINT_ID>/device \
+  -H "Content-Type: application/json" \
+  -d '{
+    "deviceId": "<DEVICE_ID>"
   }'
 ```

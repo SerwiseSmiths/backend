@@ -60,3 +60,24 @@ export const getMyNotifications = async (req: Request, res: Response, next: Next
         next(error);
     }
 };
+
+// Mark Notification as Read
+export const markAsRead = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = (req as any).user?.id;
+        if (!userId) throw new ApiError(401, "Unauthorized");
+
+        const { id } = req.params;
+        const notification = await notificationService.markAsRead(id, userId as string);
+
+
+        if (!notification) {
+            throw new ApiError(404, "Notification not found or access denied");
+        }
+
+        res.status(200).json(new ApiSuccess(200, "Notification marked as read", notification));
+    } catch (error) {
+        next(error);
+    }
+};
+

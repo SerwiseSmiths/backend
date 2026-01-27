@@ -29,6 +29,11 @@ export interface IUser extends Document {
   isDeleted: boolean;
   isStaff: boolean;
 
+  // 🔥 Newly Added for Chat:
+  username?: string;
+  hasSetUsername: boolean;
+  circles: string[]; // Array of Circle IDs
+
   // -------- Instance Methods --------
   fullName(): string;
   validateprofileImage(_enteredprofileImage: string): Promise<boolean>;

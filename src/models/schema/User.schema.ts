@@ -47,6 +47,11 @@ const UserSchema = new Schema<IUser>(
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
     isStaff: { type: Boolean, default: false },
+
+    // 🔥 Newly Added for Chat:
+    username: { type: String, unique: true, sparse: true, trim: true },
+    hasSetUsername: { type: Boolean, default: false },
+    circles: [{ type: Schema.Types.ObjectId, ref: "Circle" }],
   },
   {
     timestamps: true,

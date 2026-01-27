@@ -92,6 +92,16 @@ class NotificationService {
     async getUserNotifications(userId: string, limit: number, skip: number) {
         return await notificationRepository.getUserNotifications(userId, limit, skip);
     }
+
+    async getUnseenNotificationCount(userId: string) {
+        return await notificationRepository.getUnseenNotificationCount(userId);
+    }
+
+    async markAsRead(notificationId: string, userId: string) {
+        return await notificationRepository.markAsRead(notificationId, userId);
+    }
 }
+
+
 
 export default new NotificationService();

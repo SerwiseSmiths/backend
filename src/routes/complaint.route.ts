@@ -14,5 +14,6 @@ router.delete("/:id", complaintController.deleteComplaint);
 // Additional
 router.patch("/:id/stage", complaintController.updateStage);
 router.patch("/:id/quote", complaintController.addQuote);
+router.patch("/:id/device", complaintController.addDevice);
 
 export default router;

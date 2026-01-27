@@ -7,9 +7,10 @@ const NotificationSchema = new Schema<INotification>(
         body: { type: String, required: true },
         type: {
             type: String,
-            enum: ["SYSTEM", "PROMOTION", "TRANSACTION", "Order", "GIFT", "RECHARGE"],
-            default: "SYSTEM",
+            enum: ["Promotional", "Service", "Circles", "Security"],
+            default: "Service",
         },
+
         target: {
             type: String,
             enum: ["ALL", "USER", "GROUP"],

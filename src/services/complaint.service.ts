@@ -13,11 +13,10 @@ export const createComplaint = async (
   console.log("Creating complaint with data:", data, "for user:", userId);
   data["user"] = userId;
 
-  if (!data.provider) {
-    const provider = await getAutoAssignedProvider();
-    if (!provider) throw new ApiError(400, "No provider available");
-    data.provider = provider;
-  }
+  // Always auto-assign provider
+  const provider = await getAutoAssignedProvider();
+  if (!provider) throw new ApiError(400, "No provider available");
+  data.provider = provider;
 
   const complaint = await complaintRepo.createComplaint(data);
 
@@ -65,6 +64,13 @@ export const addQuote = async (id: mongodbId, quoteId: mongodbId) => {
   if (!updated) throw new ApiError(404, "Complaint not found");
 
   return new ApiSuccess(200, "Quote added", { complaint: updated });
+};
+
+export const addDevice = async (id: mongodbId, deviceId: mongodbId) => {
+  const updated = await complaintRepo.updateComplaint(id, { device: deviceId });
+  if (!updated) throw new ApiError(404, "Complaint not found");
+
+  return new ApiSuccess(200, "Device added", { complaint: updated });
 };
 
 export const listComplaintsByUser = async (userId: mongodbId) => {

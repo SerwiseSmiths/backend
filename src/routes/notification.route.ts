@@ -26,6 +26,8 @@ const router = express.Router();
 // Routes
 router.post("/device/register", controller.registerDevice); // Open endpoint, controller checks for user
 router.get("/my-notifications", auth, controller.getMyNotifications);
+router.patch("/:id/read", auth, controller.markAsRead);
+
 
 // Admin Routes
 router.post("/send", auth, authorize(["manager"]), controller.sendNotification);

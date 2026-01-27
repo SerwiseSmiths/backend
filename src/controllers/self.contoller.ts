@@ -1,26 +1,46 @@
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
+import ApiError from "../utils/api/ApiError.api.util";
+
 import * as selfService from "../services/self.service";
 import * as deviceService from "../services/device.service";
 import * as complaintService from "../services/complaint.service";
 import * as walletService from "../services/wallet.services";
+import * as userService from "../services/user.services";
+import notificationService from "../services/notification.service";
 
-export type ProviderStats = {
+export type HomeStats = {
   name: string;
-  profileImage: string | null;
-  total: number;          // fractional allowed
-  todaysEarning: number;  // fractional allowed
-  totalTask: number;
+  notifications: number;
+  wallet: number;
 };
 
 
-export const home = (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
-  return res.json(new ApiSuccess<ProviderStats>(200, "Home details fatched successfully", {
-    name: "Patel",
-    profileImage: null,
-    total: 15298.36,        // fractional allowed
-    todaysEarning: 265.3,  // fractional allowed
-    totalTask: 1,
-  }));
+export const home = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
+  try {
+    const userId = req.user.id;
+
+    // Fetch user details
+    const userRes = await userService.retirveUserById(userId);
+    if (!userRes.data) throw new ApiError(500, "Failed to fetch user data");
+    const user = userRes.data.user;
+
+    // Fetch unseen notification count
+    const notifications = await notificationService.getUnseenNotificationCount(userId);
+
+    // Fetch wallet balance
+    const walletRes = await walletService.getWallet(userId);
+    if (!walletRes.data) throw new ApiError(500, "Failed to fetch wallet data");
+    const wallet = walletRes.data.wallet;
+
+
+    return res.json(new ApiSuccess<HomeStats>(200, "Home details fetched successfully", {
+      name: user.firstName,
+      notifications,
+      wallet: wallet.balance,
+    }));
+  } catch (error) {
+    next(error);
+  }
 }
 
 export const getSelfAddress = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {

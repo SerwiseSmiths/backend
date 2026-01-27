@@ -10,6 +10,7 @@ import * as userRepo from "../repositories/user.repo";
 import ApiError from "../utils/api/ApiError.api.util";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 import { UserRecord } from "firebase-admin/lib/auth/user-record";
+import usernameService from "./username.service";
 
 /**
  * Registers a new user.
@@ -42,6 +43,10 @@ export async function registerUser(
       throw new ApiError(409, "User with this email already exists");
     }
   }
+
+  // generate unique username
+  const username = await usernameService.generateUniqueUsername(value.firstName, value.lastName);
+  value.username = username;
 
   //save user to database
   const newUser = await userRepo.createUser(value);
@@ -89,9 +94,9 @@ export async function retriveUserByRefCode(_refCode: string) {
   );
 }
 
-export async function retrieveAllUsers(): Promise<ApiSuccessType<{user : UserDocument[]}>> {
+export async function retrieveAllUsers(): Promise<ApiSuccessType<{ user: UserDocument[] }>> {
   const users = (await userRepo.retrieveAllUsers()) ?? [];
-  return new ApiSuccess<{user : UserDocument[]}>(
+  return new ApiSuccess<{ user: UserDocument[] }>(
     200,
     "Users retrived successfully",
     { user: users }
