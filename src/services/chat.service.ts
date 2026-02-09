@@ -60,7 +60,8 @@ class ChatService {
         const complaint = await ComplaintModel.findById(complaintId);
         if (!complaint) throw new ApiError(404, "Complaint not found");
 
-        if (complaint.stage === "Payment" || (complaint as any).isCompleted) { // Adjust based on actual completion logic
+        // Check if complaint is completed or rejected - temporary chat should not be visible
+        if (complaint.stage === "COMPLETED" || complaint.stage === "REJECTED") {
             return []; // Return empty or restricted history if completed
         }
 

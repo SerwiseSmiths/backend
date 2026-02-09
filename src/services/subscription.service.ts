@@ -7,8 +7,7 @@ import ApiError from "../utils/api/ApiError.api.util";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 
 import * as subRepo from "../repositories/subscription.repo";
-import { ISubscription } from "../models/schema/subscription.schema";
-// import { mongodbId } from "../types/common";
+import { ISubscription, SubscriptionModel } from "../models/schema/subscription.schema";
 
 /** CREATE SUBSCRIPTION */
 export async function createSubscription(
@@ -19,14 +18,14 @@ export async function createSubscription(
     auto_renew: boolean;
     plan: string;
     startDate: Date;
+    payments?: mongodbId[];
   }
 ): Promise<ApiSuccess<ISubscription>> {
-  const { remaining_service, payment_remaining, auto_renew, startDate, plan } = body;
+  const { remaining_service, payment_remaining, auto_renew, startDate, plan, payments } = body;
 
   if (!remaining_service || remaining_service <= 0)
     throw new ApiError(400, "Invalid remaining_service");
 
-  // const startDate = new Date();
   const monthsToAdd = remaining_service / 12;
   const endDate = new Date(startDate);
   endDate.setMonth(startDate.getMonth() + monthsToAdd);
@@ -44,6 +43,7 @@ export async function createSubscription(
 
     payment_remaining,
     type: plan,
+    payments: payments || [],
   };
 
   const newSub = await subRepo.createSubscription(subData);
@@ -62,6 +62,14 @@ export async function retrieveSubscriptionById(_id: mongodbId) {
 export async function retrieveAllSubscriptions() {
   const subs = await subRepo.retrieveAllSubscriptions();
   return new ApiSuccess(200, "Subscriptions retrieved", subs);
+}
+
+/** GET BY USER */
+export async function retrieveSubscriptionsByUser(userId: mongodbId) {
+  const subs = await SubscriptionModel.find({ user: userId })
+    .populate("payments")
+    .sort({ createdAt: -1 });
+  return new ApiSuccess(200, "User subscriptions retrieved", subs);
 }
 
 /** CHANGE STATE */
@@ -93,4 +101,34 @@ export async function updatePaymentRemaining(
   if (!updated) throw new ApiError(400, "Invalid subscription");
 
   return new ApiSuccess(200, "Payment remaining updated", updated);
+}
+
+/** ADD PAYMENT TO SUBSCRIPTION */
+export async function addPayment(
+  _id: mongodbId,
+  paymentId: mongodbId
+) {
+  const subscription = await subRepo.retrieveSubscriptionById(_id);
+  if (!subscription) throw new ApiError(400, "Invalid subscription");
+
+  const updated = await SubscriptionModel.findByIdAndUpdate(
+    _id,
+    { $push: { payments: paymentId } },
+    { new: true }
+  ).populate("payments");
+
+  if (!updated) throw new ApiError(400, "Failed to add payment");
+
+  return new ApiSuccess(200, "Payment added to subscription", updated);
+}
+
+/** GET SUBSCRIPTION PAYMENTS */
+export async function getSubscriptionPayments(_id: mongodbId) {
+  const subscription = await SubscriptionModel.findById(_id).populate("payments");
+  if (!subscription) throw new ApiError(400, "Invalid subscription");
+
+  return new ApiSuccess(200, "Subscription payments retrieved", {
+    subscription,
+    payments: subscription.payments,
+  });
 }

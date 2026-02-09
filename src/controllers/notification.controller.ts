@@ -64,11 +64,13 @@ export const getMyNotifications = async (req: Request, res: Response, next: Next
 // Mark Notification as Read
 export const markAsRead = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userId = (req as any).user?.id;
+        const userId = (req as any).user?.id as string | undefined;
         if (!userId) throw new ApiError(401, "Unauthorized");
 
         const { id } = req.params;
-        const notification = await notificationService.markAsRead(id, userId as string);
+        if (!id) throw new ApiError(400, "Notification ID is required");
+
+        const notification = await notificationService.markAsRead(id, userId);
 
 
         if (!notification) {

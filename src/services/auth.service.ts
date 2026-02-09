@@ -21,7 +21,7 @@ export const login = async (_phoneNo: string) => {
   const tokens = await user.generateAuthTokens();
 
   //return res
-  return new ApiSuccess(200, "User looged in sucessfully", { tokens });
+  return new ApiSuccess(200, "User looged in sucessfully", { tokens, user });
 };
 
-export const logout = async () => {};
+export const logout = async () => { };

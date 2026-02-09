@@ -6,11 +6,12 @@ export interface INotification extends Document {
     type: "Promotional" | "Service" | "Circles" | "Security";
 
     target: string;
-    userId?: Schema.Types.ObjectId;
-    groupId?: Schema.Types.ObjectId;
+    userId?: string | Schema.Types.ObjectId;
+    groupId?: string | Schema.Types.ObjectId;
     status: string;
     metadata?: Record<string, any>;
     isRead: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
+

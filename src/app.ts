@@ -18,6 +18,7 @@ import paymentRoutes from "./routes/payment.route";
 import selfRoutes from "./routes/self.route";
 import walletRoutes from "./routes/wallet.route";
 import notificationRoutes from "./routes/notification.route";
+import uploadRoutes from "./routes/upload.route";
 
 import chatRoutes from "./routes/chat.route";
 import circleRoutes from "./routes/circle.route";
@@ -44,6 +45,8 @@ app.use(`${BASE_URL}/payment`, paymentRoutes);
 app.use(`${BASE_URL}/me`, selfRoutes);
 app.use(`${BASE_URL}/wallet`, walletRoutes);
 app.use(`${BASE_URL}/notification`, notificationRoutes);
+app.use(`${BASE_URL}/upload`, uploadRoutes);
 // app.use(errorHandler);
 
 export default app;
+
