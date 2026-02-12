@@ -1,8 +1,8 @@
-import {Schema} from "mongoose";
+import { Schema } from "mongoose";
 
 export interface IDevice extends Document {
   name: string;
-  deviceType: Schema.Types.ObjectId;
+  deviceType: string;  // Strapi CMS ID
   description?: string;
   user: Schema.Types.ObjectId;
   address: Schema.Types.ObjectId;   // <-- updated

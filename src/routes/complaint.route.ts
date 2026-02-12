@@ -25,4 +25,8 @@ router.patch("/:id/payment", auth, complaintController.addPayment);
 // Reopen complaint
 router.post("/:id/reopen", auth, complaintController.reopenComplaint);
 
+// Provider accepts/rejects assignment
+router.patch("/:id/accept", auth, complaintController.acceptComplaintAssignment);
+router.patch("/:id/reject-assignment", auth, complaintController.rejectComplaintAssignment);
+
 export default router;

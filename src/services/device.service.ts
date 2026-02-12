@@ -57,3 +57,8 @@ export const getDevicesByUser = async (userId: string) => {
   const devices = await retrieveDevicesByUserId(userId);
   return devices;
 };
+
+export const retrieveByUser = async (userId: string) => {
+  const devices = await retrieveDevicesByUserId(userId);
+  return new ApiSuccess(200, "User devices retrieved", { devices });
+};

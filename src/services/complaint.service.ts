@@ -60,12 +60,15 @@ export const updateComplaint = async (
   const updated = await complaintRepo.updateComplaint(id, data as Partial<IComplaint>);
   if (!updated) throw new ApiError(404, "Complaint not found");
 
-  // Emit update event
-  socketService.emitComplaintUpdated(
-    updated.user?.toString() || "",
-    updated.provider?.toString() || null,
-    updated
-  );
+  // Emit update event - extract IDs from potentially populated fields
+  const userId = typeof updated.user === 'object' && updated.user?._id
+    ? updated.user._id.toString()
+    : updated.user?.toString() || "";
+  const providerId = typeof updated.provider === 'object' && updated.provider?._id
+    ? updated.provider._id.toString()
+    : updated.provider?.toString() || null;
+
+  socketService.emitComplaintUpdated(userId, providerId, updated);
 
   return new ApiSuccess(200, "Complaint updated", { complaint: updated });
 };
@@ -77,22 +80,36 @@ export const deleteComplaint = async (id: mongodbId) => {
   return new ApiSuccess(200, "Complaint deleted", null);
 };
 
-export const updateStage = async (id: mongodbId, stage: complaintStages) => {
+export const updateStage = async (id: mongodbId, stage: complaintStages, rejectionReason?: string) => {
   const complaint = await complaintRepo.findComplaintById(id);
   if (!complaint) throw new ApiError(404, "Complaint not found");
 
   const oldStage = complaint.stage;
-  const updated = await complaintRepo.updateComplaint(id, { stage });
+
+  // Prepare update data
+  const updateData: any = { stage };
+
+  // If rejecting, store rejection reason and metadata
+  if (stage === "REJECTED" && rejectionReason) {
+    updateData.rejectionReason = rejectionReason;
+    updateData.rejectionMetadata = {
+      rejectedAt: new Date(),
+      rejectedBy: complaint.user, // Customer rejecting the quote
+    };
+  }
+
+  const updated = await complaintRepo.updateComplaint(id, updateData);
   if (!updated) throw new ApiError(404, "Complaint not found");
 
-  // Emit stage change event
-  socketService.emitStageChanged(
-    updated.user?.toString() || "",
-    updated.provider?.toString() || null,
-    updated,
-    oldStage,
-    stage
-  );
+  // Emit stage change event - extract IDs from potentially populated fields
+  const userId = typeof updated.user === 'object' && updated.user?._id
+    ? updated.user._id.toString()
+    : updated.user?.toString() || "";
+  const providerId = typeof updated.provider === 'object' && updated.provider?._id
+    ? updated.provider._id.toString()
+    : updated.provider?.toString() || null;
+
+  socketService.emitStageChanged(userId, providerId, updated, oldStage, stage);
 
   return new ApiSuccess(200, "Stage updated", { complaint: updated });
 };
@@ -101,8 +118,12 @@ export const addQuote = async (id: mongodbId, quoteId: mongodbId) => {
   const updated = await complaintRepo.updateComplaint(id, { quote: quoteId });
   if (!updated) throw new ApiError(404, "Complaint not found");
 
-  // Emit quote added event
-  socketService.emitQuoteAdded(updated.user?.toString() || "", updated);
+  // Emit quote added event - extract user ID from potentially populated field
+  const userId = typeof updated.user === 'object' && updated.user?._id
+    ? updated.user._id.toString()
+    : updated.user?.toString() || "";
+
+  socketService.emitQuoteAdded(userId, updated);
 
   return new ApiSuccess(200, "Quote added", { complaint: updated });
 };
@@ -121,12 +142,15 @@ export const addPayment = async (id: mongodbId, paymentId: mongodbId) => {
   const updated = await complaintRepo.updateComplaint(id, { payment: paymentId });
   if (!updated) throw new ApiError(404, "Complaint not found");
 
-  // Emit payment done event
-  socketService.emitPaymentDone(
-    updated.user?.toString() || "",
-    updated.provider?.toString() || null,
-    updated
-  );
+  // Emit payment done event - extract IDs from potentially populated fields
+  const userId = typeof updated.user === 'object' && updated.user?._id
+    ? updated.user._id.toString()
+    : updated.user?.toString() || "";
+  const providerId = typeof updated.provider === 'object' && updated.provider?._id
+    ? updated.provider._id.toString()
+    : updated.provider?.toString() || null;
+
+  socketService.emitPaymentDone(userId, providerId, updated);
 
   return new ApiSuccess(200, "Payment added", { complaint: updated });
 };
@@ -139,6 +163,41 @@ export const listComplaintsByUser = async (userId: mongodbId) => {
 export const listComplaintsByProvider = async (providerId: mongodbId) => {
   const complaints = await complaintRepo.listComplaintsByProvider(providerId);
   return new ApiSuccess(200, "Provider complaints fetched", { complaints });
+};
+
+// Provider accepts complaint assignment
+export const acceptComplaintAssignment = async (
+  complaintId: mongodbId,
+  providerId: mongodbId
+) => {
+  const providerAssignmentService = (await import("./providerAssignment.service")).default;
+  const accepted = await providerAssignmentService.acceptAssignment(
+    complaintId.toString(),
+    providerId.toString()
+  );
+
+  if (!accepted) {
+    throw new ApiError(400, "Assignment expired or not found");
+  }
+
+  const complaint = await complaintRepo.findComplaintById(complaintId);
+  return new ApiSuccess(200, "Complaint assignment accepted", { complaint });
+};
+
+// Provider rejects complaint assignment
+export const rejectComplaintAssignment = async (
+  complaintId: mongodbId,
+  providerId: mongodbId
+) => {
+  const providerAssignmentService = (await import("./providerAssignment.service")).default;
+  await providerAssignmentService.rejectAssignment(
+    complaintId.toString(),
+    providerId.toString()
+  );
+
+  return new ApiSuccess(200, "Complaint assignment rejected", {
+    message: "Finding alternative provider",
+  });
 };
 
 export const reopenComplaint = async (

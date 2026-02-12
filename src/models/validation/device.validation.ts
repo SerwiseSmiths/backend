@@ -29,7 +29,7 @@ export const deviceDescriptionSchema = Joi.object({
 
 export const deviceValidationSchema = Joi.object({
   name: Joi.string().min(2).max(50).required(),
-  deviceType: Joi.string().length(24).required(),
+  deviceType: Joi.string().required(),  // Strapi ID (not MongoDB ObjectId)
   description: deviceDescriptionSchema,
   user: Joi.string().length(24).required(),
   address: Joi.string().length(24).required(),   // <-- updated (MongoId)

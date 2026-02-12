@@ -6,8 +6,7 @@ const DeviceSchema = new Schema<IDevice>(
     name: { type: String, required: true, trim: true },
 
     deviceType: {
-      type: Schema.Types.ObjectId,
-      ref: "deviceType",
+      type: String,  // Strapi CMS ID
       required: true,
     },
 

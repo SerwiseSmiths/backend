@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.post("/", controller.createDevice);
 router.get("/", controller.getDevices);
+router.get("/user/:userId", controller.getUserDevices);
 router.get("/:id", controller.getDevice);
 router.put("/:id", controller.updateDevice);
 router.delete("/:id", controller.deleteDevice);

@@ -45,3 +45,12 @@ export const deleteDevice = async (req: Request, res: Response, next: NextFuncti
     next(err);
   }
 };
+
+export const getUserDevices = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await deviceService.retrieveByUser(req.params.userId!);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
+  }
+};

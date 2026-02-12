@@ -76,8 +76,8 @@ export const updateStage = async (
   next: ExpressNextFunction
 ) => {
   try {
-    const { stage } = req.body;
-    const result = await complaintService.updateStage(req.params.id, stage);
+    const { stage, rejectionReason } = req.body;
+    const result = await complaintService.updateStage(req.params.id, stage, rejectionReason);
     res.status(result.statusCode).json(result);
   } catch (err) {
     next(err);
@@ -167,6 +167,42 @@ export const listProviderComplaints = async (
   try {
     const providerId = req.user.id;
     const result = await complaintService.listComplaintsByProvider(providerId);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Provider accepts complaint assignment
+export const acceptComplaintAssignment = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction
+) => {
+  try {
+    const providerId = req.user.id;
+    const result = await complaintService.acceptComplaintAssignment(
+      req.params.id,
+      providerId
+    );
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Provider rejects complaint assignment
+export const rejectComplaintAssignment = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction
+) => {
+  try {
+    const providerId = req.user.id;
+    const result = await complaintService.rejectComplaintAssignment(
+      req.params.id,
+      providerId
+    );
     res.status(result.statusCode).json(result);
   } catch (err) {
     next(err);

@@ -57,6 +57,30 @@ const complaintSchema = new Schema<IComplaint>(
       default: null,
     },
 
+    // Rejection tracking
+    rejectionReason: { type: String, default: null },
+    rejectionMetadata: {
+      type: {
+        rejectedAt: Date,
+        rejectedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      },
+      default: null,
+    },
+
+    // Payment verification (admin email verification)
+    paymentVerificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+      default: null,
+    },
+    paymentVerificationToken: { type: String, default: null },
+    paymentRequestedAt: { type: Date, default: null },
+
+    // Provider acceptance tracking
+    providerAccepted: { type: Boolean, default: false },
+    providerAcceptedAt: { type: Date, default: null },
+    providerAssignmentExpiry: { type: Date, default: null },
+
     payment: {
       type: Schema.Types.ObjectId,
       ref: "WalletLedger",

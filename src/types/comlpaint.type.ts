@@ -23,6 +23,24 @@ export interface IComplaint extends Document {
   media: IMedia[];
   subscriptionId: mongodbId | null;
   payment: mongodbId | null; // ref to WalletLedger
+
+  // Rejection tracking
+  rejectionReason?: string | null;
+  rejectionMetadata?: {
+    rejectedAt: Date;
+    rejectedBy: mongodbId;
+  } | null;
+
+  // Payment verification
+  paymentVerificationStatus?: "pending" | "verified" | "rejected" | null;
+  paymentVerificationToken?: string | null;
+  paymentRequestedAt?: Date | null;
+
+  // Provider acceptance
+  providerAccepted?: boolean;
+  providerAcceptedAt?: Date | null;
+  providerAssignmentExpiry?: Date | null;
+
   createdAt: Date;
   updatedAt: Date;
 }

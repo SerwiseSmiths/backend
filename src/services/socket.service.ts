@@ -210,7 +210,7 @@ class SocketService {
     }
 
     // Emit to user, with offline handling
-    private emitToUser(
+    public emitToUser(
         userId: string,
         event: string,
         data: any,
@@ -234,7 +234,7 @@ class SocketService {
     }
 
     // Emit to provider with queue for offline
-    private emitToProvider(
+    public emitToProvider(
         providerId: string,
         event: string,
         data: any,
