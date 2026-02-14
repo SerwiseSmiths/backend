@@ -14,18 +14,11 @@ export async function createQuote(data: Partial<IQuote>) {
     );
   }
 
-  // Fetch service prices to calculate total
-  const services = await ServiceModel.find({ _id: { $in: value.items } });
-
-  if (services.length !== value.items.length) {
-    throw new ApiError(404, "One or more service IDs are invalid");
-  }
-
-  const total = services.reduce((sum, s) => sum + s.price, 0);
-
+  // Items are Strapi part IDs (integers), not MongoDB Service IDs
+  // Total is provided from frontend calculation
   const quote = await quoteRepo.createQuote({
-    ...value,
-    total,
+    items: value.items || [],
+    total: value.total,
   });
 
   return new ApiSuccess(201, "Quote created successfully", { quote });

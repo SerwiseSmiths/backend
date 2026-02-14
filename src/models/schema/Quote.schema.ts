@@ -1,14 +1,13 @@
 import { Schema, model, Document } from "mongoose";
-import { IService } from "./Service.schema";
 
 export interface IQuote extends Document {
-  items: IService[];
+  items: number[]; // Strapi part IDs
   total: number;
   isPaid: boolean;
 }
 
 const quoteSchema = new Schema<IQuote>({
-  items: [{ type: Schema.Types.ObjectId, ref: "Service" }],
+  items: [{ type: Number }], // Strapi part IDs (integers)
   total: { type: Number, required: true },
   isPaid: { type: Boolean, default: false },
 });

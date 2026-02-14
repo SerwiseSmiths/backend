@@ -77,6 +77,7 @@ export const updateStage = async (
 ) => {
   try {
     const { stage, rejectionReason } = req.body;
+    console.log(stage, rejectionReason);
     const result = await complaintService.updateStage(req.params.id, stage, rejectionReason);
     res.status(result.statusCode).json(result);
   } catch (err) {

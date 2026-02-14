@@ -3,25 +3,42 @@ import ApiError from "../utils/api/ApiError.api.util";
 import * as UserRepo from "../repositories/user.repo";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 
-export const login = async (_phoneNo: string) => {
+export const login = async (_phoneNo: string, _userType?: string) => {
   if (!_phoneNo) {
     throw new ApiError(401, "Phone no required");
   }
 
-  console.log(_phoneNo);
+  console.log(`Login attempt for: ${_phoneNo}, userType: ${_userType || 'customer'}`);
 
-  const user = await UserRepo.retriveUserByPhoneNo(_phoneNo);
-  console.log(user);
+  // Find existing user by phone number
+  let user = await UserRepo.retriveUserByPhoneNo(_phoneNo);
+  const isNewUser = !user;
 
   if (!user) {
-    throw new ApiError(401, "invalid phone no");
+    // Auto-register new user with basic information
+    console.log(`Creating new user: ${_phoneNo}`);
+
+    user = await UserModel.create({
+      phoneNo: _phoneNo,
+      userType: _userType || 'customer', // Default to customer if not specified
+      firstName: "User",
+      lastName: _phoneNo.slice(-4), // Use last 4 digits as temporary last name
+    });
+
+    console.log(`New user created with ID: ${user._id}`);
+  } else {
+    console.log(`Existing user found: ${user._id}`);
   }
 
-  //generate token
+  // Generate authentication tokens
   const tokens = await user.generateAuthTokens();
 
-  //return res
-  return new ApiSuccess(200, "User looged in sucessfully", { tokens, user });
+  // Return success with tokens, user data, and isNewUser flag
+  return new ApiSuccess(200, "User logged in successfully", {
+    tokens,
+    user,
+    isNewUser
+  });
 };
 
 export const logout = async () => { };

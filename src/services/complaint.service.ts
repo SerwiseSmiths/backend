@@ -115,17 +115,37 @@ export const updateStage = async (id: mongodbId, stage: complaintStages, rejecti
 };
 
 export const addQuote = async (id: mongodbId, quoteId: mongodbId) => {
-  const updated = await complaintRepo.updateComplaint(id, { quote: quoteId });
+  const complaint = await complaintRepo.findComplaintById(id);
+  if (!complaint) throw new ApiError(404, "Complaint not found");
+
+  const oldStage = complaint.stage;
+
+  // Update complaint with quote and move to APPROVAL stage
+  const updated = await complaintRepo.updateComplaint(id, {
+    quote: quoteId,
+    stage: "APPROVAL" // Move to approval after estimation is submitted
+  });
   if (!updated) throw new ApiError(404, "Complaint not found");
 
-  // Emit quote added event - extract user ID from potentially populated field
+  console.log(updated);
+
+  // Extract user and provider IDs from potentially populated fields
   const userId = typeof updated.user === 'object' && updated.user?._id
     ? updated.user._id.toString()
     : updated.user?.toString() || "";
+  const providerId = typeof updated.provider === 'object' && updated.provider?._id
+    ? updated.provider._id.toString()
+    : updated.provider?.toString() || null;
 
+  // Emit quote added event
   socketService.emitQuoteAdded(userId, updated);
 
-  return new ApiSuccess(200, "Quote added", { complaint: updated });
+  // Emit stage change event if stage was updated
+  if (oldStage !== "APPROVAL") {
+    socketService.emitStageChanged(userId, providerId, updated, oldStage, "APPROVAL");
+  }
+
+  return new ApiSuccess(200, "Quote added and moved to approval", { complaint: updated });
 };
 
 export const addDevice = async (id: mongodbId, deviceId: mongodbId) => {
