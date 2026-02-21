@@ -33,4 +33,16 @@ router.post(
     uploadController.uploadMultiple
 );
 
+/**
+ * @route POST /api/v2/upload/profile
+ * @desc Upload a profile picture to Cloudinary
+ * @access Private
+ */
+router.post(
+    "/profile",
+    auth,
+    upload.single("file"),
+    uploadController.uploadProfile
+);
+
 export default router;

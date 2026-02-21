@@ -102,3 +102,26 @@ export async function retrieveAllUsers(): Promise<ApiSuccessType<{ user: UserDoc
     { user: users }
   );
 }
+
+/**
+ * Updates a user's profile image.
+ * @param _id - User id
+ * @param profileImageUrl - URL of the profile image
+ * @returns Updated user
+ */
+export async function updateProfileImage(
+  _id: mongodbId,
+  profileImageUrl: string
+): Promise<ApiSuccessType<userApiData>> {
+  const updatedUser = await userRepo.updateUserById(_id, { profileImage: profileImageUrl });
+
+  if (!updatedUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return new ApiSuccess<userApiData>(
+    200,
+    "Profile image updated successfully",
+    { user: updatedUser }
+  );
+}

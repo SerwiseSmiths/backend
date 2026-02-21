@@ -129,3 +129,47 @@ export const uploadMultipleFiles = async (req: Request) => {
         errors: errors.length > 0 ? errors : undefined,
     });
 };
+
+export const uploadProfileFile = async (req: Request) => {
+    const file = (req as any).file;
+
+    if (!file) {
+        throw new ApiError(400, "No file uploaded");
+    }
+
+    // Only allow image types for profile pictures
+    const ALLOWED_IMAGE_TYPES = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+    ];
+
+    // Validate MIME type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+        fs.unlinkSync(file.path);
+        throw new ApiError(400, `File type ${file.mimetype} is not allowed. Only images are allowed for profile pictures.`);
+    }
+
+    try {
+        // Upload to Cloudinary in profiles folder
+        const result = await uploadToCloudinary(file.path, "profiles");
+
+        // Remove temp file
+        if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
+
+        // Return URL in format expected by frontend: data.data.url or data.url
+        return new ApiSuccess(200, "Profile picture uploaded successfully", {
+            url: result.secure_url,
+            publicId: result.public_id,
+        });
+    } catch (error) {
+        // Clean up temp file on error
+        if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
+        throw new ApiError(500, "Failed to upload profile picture to cloud storage");
+    }
+};

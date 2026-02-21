@@ -25,6 +25,7 @@ const complaintSchema = new Schema<IComplaint>(
       type: String,
       enum: [
         "ENTRANCE",
+        "QR_VALIDATED",
         "ESTIMATION",
         "APPROVAL",
         "PAYMENT",
@@ -86,6 +87,15 @@ const complaintSchema = new Schema<IComplaint>(
       ref: "WalletLedger",
       default: null,
     },
+    // Calculated payment amount (cached to avoid recalculation)
+    calculatedPaymentAmount: { type: Number, default: null },
+    calculatedPaymentAt: { type: Date, default: null },
+    // Cash collection tracking
+    cashCollected: { type: Boolean, default: false },
+    cashCollectedAt: { type: Date, default: null },
+    // Entry QR validation (provider must scan customer's QR to start service)
+    entryQrToken: { type: String, default: null },
+    entryQrExpiresAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

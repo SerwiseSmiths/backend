@@ -25,7 +25,5 @@ const CircleSchema = new Schema<ICircle>(
     }
 );
 
-CircleSchema.index({ invitationCode: 1 });
-
 const CircleModel = mongoose.model<ICircle>("Circle", CircleSchema);
 export default CircleModel;

@@ -49,38 +49,87 @@ class NotificationService {
     // --- FCM Helpers ---
 
     private async sendToTokens(tokens: string[], notification: INotification) {
-        if (!fcm) return;
+        if (!fcm) {
+            console.warn("FCM not initialized. Cannot send push notification.");
+            throw new Error("FCM not initialized. Please configure Firebase credentials.");
+        }
+
+        // FCM requires all data values to be strings
+        const dataPayload: Record<string, string> = {
+            notificationId: notification._id.toString(),
+            type: notification.type || ''
+        };
+        
+        // Convert all metadata values to strings
+        if (notification.metadata) {
+            Object.keys(notification.metadata).forEach(key => {
+                const value = notification.metadata[key];
+                if (value !== null && value !== undefined) {
+                    dataPayload[key] = typeof value === 'string' ? value : JSON.stringify(value);
+                }
+            });
+        }
 
         const message = {
             notification: {
                 title: notification.title,
                 body: notification.body,
             },
-            data: {
-                ...notification.metadata,
-                notificationId: notification._id.toString(),
-                type: notification.type
-            },
+            data: dataPayload,
             tokens: tokens,
         };
 
         const response = await fcm.sendEachForMulticast(message);
-        console.log(`Sent to ${response.successCount} devices, failed: ${response.failureCount}`);
+        console.log(`[FCM] Sent to ${response.successCount} devices, failed: ${response.failureCount}`);
+        
+        // Log detailed error information for failed tokens
+        if (response.failureCount > 0) {
+            response.responses.forEach((resp, idx) => {
+                if (!resp.success) {
+                    console.error(`[FCM] Token ${idx} (${tokens[idx].substring(0, 20)}...) failed:`, {
+                        error: resp.error?.code || 'UNKNOWN',
+                        message: resp.error?.message || 'No error message',
+                        token: tokens[idx].substring(0, 30) + '...'
+                    });
+                    
+                    // Handle specific error codes
+                    if (resp.error?.code === 'messaging/invalid-registration-token' || 
+                        resp.error?.code === 'messaging/registration-token-not-registered') {
+                        console.warn(`[FCM] Token ${idx} is invalid or unregistered. Consider removing it from database.`);
+                    }
+                }
+            });
+        }
     }
 
     private async sendToTopic(topic: string, notification: INotification) {
-        if (!fcm) return;
+        if (!fcm) {
+            console.warn("FCM not initialized. Cannot send push notification.");
+            throw new Error("FCM not initialized. Please configure Firebase credentials.");
+        }
+
+        // FCM requires all data values to be strings
+        const dataPayload: Record<string, string> = {
+            notificationId: notification._id.toString(),
+            type: notification.type || ''
+        };
+        
+        // Convert all metadata values to strings
+        if (notification.metadata) {
+            Object.keys(notification.metadata).forEach(key => {
+                const value = notification.metadata[key];
+                if (value !== null && value !== undefined) {
+                    dataPayload[key] = typeof value === 'string' ? value : JSON.stringify(value);
+                }
+            });
+        }
 
         const message = {
             notification: {
                 title: notification.title,
                 body: notification.body,
             },
-            data: {
-                ...notification.metadata,
-                notificationId: notification._id.toString(),
-                type: notification.type
-            },
+            data: dataPayload,
             topic: topic,
         };
 

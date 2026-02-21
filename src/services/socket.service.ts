@@ -246,14 +246,26 @@ class SocketService {
         } else if (shouldQueue) {
             this.queueEventForProvider(providerId, event, data);
 
-            // Also send push notification
+            // Build FCM data payload — all values must be strings
+            const fcmData: Record<string, string> = { event };
+            try {
+                // Serialize complaint so the app can open popup directly from tap
+                if (data?.complaint) {
+                    fcmData.complaint = JSON.stringify(data.complaint);
+                    fcmData.complaintId = data.complaint._id?.toString() ?? '';
+                }
+            } catch (_) {
+                // If serialization fails, still send basic notification
+            }
+
+            // Send push notification
             notificationService.sendNotification({
                 userId: providerId,
                 target: "USER",
-                title: "New Complaint Assignment",
-                body: "You have a new service request",
+                title: "New Job Available",
+                body: data?.complaint?.title ?? "You have a new service request",
                 type: "Service",
-                metadata: { event, ...data },
+                metadata: fcmData,
             });
         }
     }

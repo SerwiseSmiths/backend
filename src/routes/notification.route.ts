@@ -24,10 +24,12 @@ const router = express.Router();
 // Actually, looking at `user.route.ts` will confirm usage.
 
 // Routes
-router.post("/device/register", controller.registerDevice); // Open endpoint, controller checks for user
+router.post("/device/register", auth,controller.registerDevice); // Open endpoint, controller checks for user
 router.get("/my-notifications", auth, controller.getMyNotifications);
 router.patch("/:id/read", auth, controller.markAsRead);
 
+// Test Route - No auth required
+router.post("/test-provider", controller.testProviderNotification);
 
 // Admin Routes
 router.post("/send", auth, authorize(["manager"]), controller.sendNotification);

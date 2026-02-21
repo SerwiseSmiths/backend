@@ -209,3 +209,47 @@ export const rejectComplaintAssignment = async (
     next(err);
   }
 };
+
+// Generate entry QR code (customer only)
+export const generateEntryQr = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction
+) => {
+  try {
+    const userId = req.user.id;
+    const result = await complaintService.generateEntryQr(
+      req.params.id,
+      userId
+    );
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Validate entry QR code (provider only)
+export const validateEntryQr = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction
+) => {
+  try {
+    const providerId = req.user.id;
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "Token is required",
+      });
+    }
+    const result = await complaintService.validateEntryQr(
+      req.params.id,
+      token,
+      providerId
+    );
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
+  }
+};

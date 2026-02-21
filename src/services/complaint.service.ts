@@ -149,8 +149,21 @@ export const addQuote = async (id: mongodbId, quoteId: mongodbId) => {
 };
 
 export const addDevice = async (id: mongodbId, deviceId: mongodbId) => {
+  const complaint = await complaintRepo.findComplaintById(id);
+  if (!complaint) throw new ApiError(404, "Complaint not found");
+
   const updated = await complaintRepo.updateComplaint(id, { deviceId });
   if (!updated) throw new ApiError(404, "Complaint not found");
+
+  // Emit update event - extract IDs from potentially populated fields
+  const userId = typeof updated.user === 'object' && updated.user?._id
+    ? updated.user._id.toString()
+    : updated.user?.toString() || "";
+  const providerId = typeof updated.provider === 'object' && updated.provider?._id
+    ? updated.provider._id.toString()
+    : updated.provider?.toString() || null;
+
+  socketService.emitComplaintUpdated(userId, providerId, updated);
 
   return new ApiSuccess(200, "Device added", { complaint: updated });
 };
@@ -251,4 +264,106 @@ export const reopenComplaint = async (
   );
 
   return new ApiSuccess(201, "Complaint reopened successfully", { complaint });
+};
+
+// Generate entry QR code for customer (or provider for testing)
+export const generateEntryQr = async (
+  complaintId: mongodbId,
+  userId: mongodbId
+) => {
+  const complaint = await complaintRepo.findComplaintById(complaintId);
+  if (!complaint) throw new ApiError(404, "Complaint not found");
+
+  // Verify user owns the complaint OR is the assigned provider (for testing)
+  const complaintUserId = typeof complaint.user === 'object' && complaint.user?._id
+    ? complaint.user._id.toString()
+    : complaint.user?.toString() || "";
+  
+  const complaintProviderId = typeof complaint.provider === 'object' && complaint.provider?._id
+    ? complaint.provider._id.toString()
+    : complaint.provider?.toString() || null;
+  
+  const isOwner = complaintUserId === userId.toString();
+  const isProvider = complaintProviderId === userId.toString();
+  
+  if (!isOwner && !isProvider) {
+    throw new ApiError(403, "Unauthorized: You can only generate QR for your own complaints or complaints assigned to you");
+  }
+
+  // Generate UUID token
+  const { v4: uuidv4 } = require('uuid');
+  const token = uuidv4();
+
+  // Set expiry to 10 minutes from now
+  const expiresAt = new Date();
+  expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+  // Update complaint with token and expiry
+  const updated = await complaintRepo.updateComplaint(complaintId, {
+    entryQrToken: token,
+    entryQrExpiresAt: expiresAt,
+  });
+
+  if (!updated) throw new ApiError(404, "Complaint not found");
+
+  return new ApiSuccess(200, "QR code generated successfully", {
+    token,
+    expiresAt,
+  });
+};
+
+// Validate entry QR code (provider scans customer's QR)
+export const validateEntryQr = async (
+  complaintId: mongodbId,
+  token: string,
+  providerId: mongodbId
+) => {
+  const complaint = await complaintRepo.findComplaintById(complaintId);
+  if (!complaint) throw new ApiError(404, "Complaint not found");
+
+  // Verify provider is assigned to this complaint
+  const complaintProviderId = typeof complaint.provider === 'object' && complaint.provider?._id
+    ? complaint.provider._id.toString()
+    : complaint.provider?.toString() || null;
+  
+  if (complaintProviderId !== providerId.toString()) {
+    throw new ApiError(403, "Unauthorized: You are not assigned to this complaint");
+  }
+
+  // Check if complaint is in ENTRANCE stage
+  if (complaint.stage !== "ENTRANCE") {
+    throw new ApiError(400, "QR validation can only be done for complaints in ENTRANCE stage");
+  }
+
+  // Check if token matches
+  if (!complaint.entryQrToken || complaint.entryQrToken !== token) {
+    throw new ApiError(400, "Invalid QR token");
+  }
+
+  // Check if token is expired
+  if (!complaint.entryQrExpiresAt || new Date() > complaint.entryQrExpiresAt) {
+    throw new ApiError(400, "QR code has expired. Please ask customer to generate a new one");
+  }
+
+  // Update stage to QR_VALIDATED
+  const oldStage = complaint.stage;
+  const updated = await complaintRepo.updateComplaint(complaintId, {
+    stage: "QR_VALIDATED",
+  });
+
+  if (!updated) throw new ApiError(404, "Complaint not found");
+
+  // Emit stage change event
+  const userId = typeof updated.user === 'object' && updated.user?._id
+    ? updated.user._id.toString()
+    : updated.user?.toString() || "";
+  const providerIdStr = typeof updated.provider === 'object' && updated.provider?._id
+    ? updated.provider._id.toString()
+    : updated.provider?.toString() || null;
+
+  socketService.emitStageChanged(userId, providerIdStr, updated, oldStage, "QR_VALIDATED");
+
+  return new ApiSuccess(200, "QR code validated successfully", {
+    complaint: updated,
+  });
 };

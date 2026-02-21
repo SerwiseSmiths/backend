@@ -75,3 +75,19 @@ export const getSelfComaplints = async (req: ExpressRequest, res: ExpressRespons
   const complaints = await complaintService.listComplaintsByUser(userId);
   return res.json(new ApiSuccess<any>(200, "Complaint details fatched successfully", { complaints }));
 }
+
+export const updateProfileImage = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
+  try {
+    const userId = req.user.id;
+    const { profileImageUrl } = req.body;
+
+    if (!profileImageUrl || typeof profileImageUrl !== 'string') {
+      return next(new ApiError(400, "profileImageUrl is required and must be a string"));
+    }
+
+    const result = await userService.updateProfileImage(userId, profileImageUrl);
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    next(error);
+  }
+}

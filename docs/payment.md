@@ -2,52 +2,74 @@
 
 Base URL: `/api/v2/payment`
 
-## Endpoints
+## Payment Flow for Complaints
 
-### Create Payment Order
-`POST /create-order`
+### 1. User initiates UPI payment via deeplink
+
+The Serwise app opens any UPI app with pre-filled payment details:
+- UPI ID: Admin's UPI address (from env)
+- Amount: Quote total
+- Transaction note: Complaint ID
+
+**UPI Deeplink Format:**
+```
+upi://pay?pa=<UPI_ID>&pn=<PAYEE_NAME>&am=<AMOUNT>&cu=INR&tn=<TRANSACTION_NOTE>
+```
+
+### 2. User completes payment in UPI app
+
+User makes the payment through their preferred UPI app (Google Pay, PhonePe, Paytm, etc.)
+
+### 3. User requests verification
+
+After payment, user clicks "I have paid" button in Serwise app.
+
+**Endpoint:** `POST /api/v2/payment/request-verification`
 
 **Headers:**
 - `Authorization: Bearer <TOKEN>`
 - `Content-Type: application/json`
 
 **Body Parameters:**
-- `amount` (number, required): Amount in currency subunits (e.g. paise for INR)
-- `type` (string, required): 'wallet_recharge' or 'order_payment'
+- `complaintId` (string, required): ID of the complaint being paid for
 
 **cURL:**
 ```bash
-curl -X POST http://localhost:3000/api/v2/payment/create-order \
+curl -X POST http://localhost:3000/api/v2/payment/request-verification \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
-    "amount": 50000,
-    "type": "wallet_recharge"
+    "complaintId": "65f8a1b2c3d4e5f6g7h8i9j0"
   }'
 ```
 
-### Verify Payment
-`POST /verify`
+### 4. Admin receives verification email
 
-Called after Razorpay payment completion on frontend.
+Email contains:
+- Complaint ID
+- Customer name
+- Amount
+- UPI address
+- **VERIFY PAYMENT** button (success link)
+- **REJECT REQUEST** button (reject link)
 
-**Headers:**
-- `Authorization: Bearer <TOKEN>`
-- `Content-Type: application/json`
+### 5. Admin clicks verification link
 
-**Body Parameters:**
-- `razorpay_order_id` (string, required)
-- `razorpay_payment_id` (string, required)
-- `razorpay_signature` (string, required)
+**Success:** `GET /api/v2/payment/verify/:token`
+- Marks complaint as COMPLETED
+- Sets `paymentVerificationStatus` to "verified"
+- Notifies customer via WebSocket
 
-**cURL:**
-```bash
-curl -X POST http://localhost:3000/api/v2/payment/verify \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "razorpay_order_id": "order_Hj...123",
-    "razorpay_payment_id": "pay_Hj...456",
-    "razorpay_signature": "e5c..."
-  }'
+**Reject:** `GET /api/v2/payment/reject/:token`
+- Keeps complaint in PAYMENT stage
+- Sets `paymentVerificationStatus` to "rejected"
+- Notifies customer to retry payment via WebSocket
+
+## Environment Variables Required
+
+```env
+PAYMENT_VERIFICATION_EMAIL=admin@gmail.com
+EMAIL_APP_PASSWORD=your-gmail-app-password
+UPI_PAYMENT_ADDRESS=yourname@upi
+BACKEND_URL=http://localhost:3000
 ```

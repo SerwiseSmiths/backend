@@ -29,4 +29,8 @@ router.post("/:id/reopen", auth, complaintController.reopenComplaint);
 router.patch("/:id/accept", auth, complaintController.acceptComplaintAssignment);
 router.patch("/:id/reject-assignment", auth, complaintController.rejectComplaintAssignment);
 
+// QR Entry validation
+router.post("/:id/qr/generate", auth, complaintController.generateEntryQr);
+router.post("/:id/qr/validate", auth, complaintController.validateEntryQr);
+
 export default router;

@@ -103,3 +103,20 @@ export const retrieveAllUsers = async (
     return null;
   }
 };
+
+export const updateUserById = async (
+  _id: mongodbId,
+  data: Partial<IUser>
+): Promise<UserDocument | null> => {
+  try {
+    const user = await UserModel.findByIdAndUpdate(
+      _id,
+      { $set: data },
+      { new: true, runValidators: true }
+    );
+    return user;
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return null;
+  }
+};

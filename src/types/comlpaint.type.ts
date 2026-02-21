@@ -3,6 +3,7 @@ import { IMedia } from "./media.type";
 
 export type complaintStages =
   | "ENTRANCE"
+  | "QR_VALIDATED"
   | "ESTIMATION"
   | "APPROVAL"
   | "PAYMENT"
@@ -23,6 +24,10 @@ export interface IComplaint extends Document {
   media: IMedia[];
   subscriptionId: mongodbId | null;
   payment: mongodbId | null; // ref to WalletLedger
+  calculatedPaymentAmount?: number | null;
+  calculatedPaymentAt?: Date | null;
+  cashCollected?: boolean;
+  cashCollectedAt?: Date | null;
 
   // Rejection tracking
   rejectionReason?: string | null;
@@ -40,6 +45,10 @@ export interface IComplaint extends Document {
   providerAccepted?: boolean;
   providerAcceptedAt?: Date | null;
   providerAssignmentExpiry?: Date | null;
+
+  // Entry QR validation
+  entryQrToken?: string | null;
+  entryQrExpiresAt?: Date | null;
 
   createdAt: Date;
   updatedAt: Date;

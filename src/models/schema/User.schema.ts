@@ -116,12 +116,12 @@ UserSchema.methods.generateAuthTokens = async function () {
       userType: user.userType,
     },
     ACCESS_SECRET,
-    { expiresIn: "15m" } // Adjust as needed
+    { expiresIn: "30d" } // Rolling 30-day access token
   );
 
   // Refresh Token (Long-lived)
   const refreshToken = jwt.sign({ id: user._id.toString() }, REFRESH_SECRET, {
-    expiresIn: "7d",
+    expiresIn: "120d", // 4 months
   });
 
   // Save refresh token in DB

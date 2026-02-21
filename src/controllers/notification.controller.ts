@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import notificationService from "../services/notification.service";
+import socketService from "../services/socket.service";
+import * as userRepo from "../repositories/user.repo";
 import ApiError from "../utils/api/ApiError.api.util";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 
@@ -8,17 +10,41 @@ import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 export const registerDevice = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { token, deviceType } = req.body;
-        // Assuming authenticated user is attached to req.user or similar, 
-        // but the plan mentioned "link with user IF user there".
-        // I need to check how user is passed. Typically `req.user` in express after auth middleware.
-        // I'll assume standard middleware populates req.user
+        
+        if (!token) {
+            throw new ApiError(400, "Device token is required");
+        }
 
-        // Check if user is authenticated (might be optional for public app features, but user asked "if user there then token should be linked")
-        const userId = (req as any).user ? (req as any).user.id : undefined;
+        // Get user from optional auth middleware (populated if token is present and valid)
+        const user = (req as any).user;
+        const userId = user ? user.id : undefined;
+        const userType = user ? user.userType : undefined;
 
-        const result = await notificationService.registerDeviceToken(userId, token, deviceType || "ANDROID");
+        console.log(`[Device Register] Token: ${token.substring(0, 20)}..., User: ${userId || 'Not linked'}, UserType: ${userType || 'N/A'}`);
 
-        res.status(200).json(new ApiSuccess(200, "Device registered successfully", result));
+        // Register/link device token (works for both customers and providers)
+        const result = await notificationService.registerDeviceToken(
+            userId, 
+            token, 
+            deviceType || "ANDROID"
+        );
+
+        if (!result) {
+            throw new ApiError(500, "Failed to register device token");
+        }
+
+        const message = userId 
+            ? `Device token registered and linked to ${userType || 'user'} (${userId})` 
+            : "Device token registered. Link to user by calling this endpoint with authentication token.";
+
+        res.status(200).json(new ApiSuccess(200, message, {
+            deviceToken: result.token,
+            linkedToUser: !!userId,
+            userId: userId || null,
+            userType: userType || null,
+            deviceType: result.deviceType,
+            isActive: result.isActive,
+        }));
     } catch (error) {
         next(error);
     }
@@ -79,6 +105,122 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
 
         res.status(200).json(new ApiSuccess(200, "Notification marked as read", notification));
     } catch (error) {
+        next(error);
+    }
+};
+
+// Test Route - Send fake data to provider with phone number 1000000000
+export const testProviderNotification = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const phoneNo = "1000000000";
+        
+        // Find provider by phone number
+        const provider = await userRepo.retriveUserByPhoneNo(phoneNo);
+        if (!provider) {
+            throw new ApiError(404, `Provider with phone number ${phoneNo} not found`);
+        }
+
+        const providerId = provider._id.toString();
+        console.log(`[TEST] Found provider: ${providerId} with phone: ${phoneNo}`);
+
+        // Check FCM initialization
+        const { fcm } = await import("../config/firebase.config");
+        const fcmInitialized = !!fcm;
+        console.log(`[TEST] FCM initialized: ${fcmInitialized}`);
+        
+        if (!fcmInitialized) {
+            console.warn(`[TEST] WARNING: FCM is not initialized. Check Firebase configuration.`);
+        }
+
+        // Check if provider has registered device tokens
+        const notificationRepo = (await import("../repositories/notification.repository")).default;
+        const deviceTokens = await notificationRepo.getTokensByUser(providerId);
+        console.log(`[TEST] Found ${deviceTokens.length} device tokens for provider ${providerId}`);
+        
+        if (deviceTokens.length === 0) {
+            console.warn(`[TEST] WARNING: No device tokens found for provider ${providerId}. Push notifications will not be sent.`);
+            console.warn(`[TEST] Provider needs to register device token using: POST /api/v2/notification/device/register`);
+        } else {
+            console.log(`[TEST] Device tokens:`, deviceTokens);
+        }
+
+        // Check if provider is online via socket
+        const isOnline = socketService.isUserOnline(providerId);
+        console.log(`[TEST] Provider online status: ${isOnline}`);
+
+        // Create fake complaint data
+        const fakeComplaint = {
+            _id: "test_complaint_id_" + Date.now(),
+            title: "Test Service Request",
+            user: "test_user_id",
+            provider: providerId,
+            stage: "ENTRANCE",
+            addressId: "test_address_id",
+            notes: "This is a test notification and socket popup",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        // Create event data
+        const eventData = {
+            complaint: fakeComplaint,
+            userId: "test_user_id",
+            providerId: providerId,
+            timestamp: new Date().toISOString(),
+        };
+
+        // Send via socket (will also trigger notification if provider is offline)
+        console.log(`[TEST] Sending socket event to provider ${providerId}`);
+        socketService.emitToProvider(
+            providerId,
+            "complaint:created",
+            eventData
+        );
+
+        // Also send a direct notification
+        console.log(`[TEST] Sending push notification to provider ${providerId}`);
+        const notification = await notificationService.sendNotification({
+            userId: providerId,
+            target: "USER",
+            title: "Test Notification - New Job Available",
+            body: "You have a new test service request",
+            type: "Service",
+            metadata: {
+                event: "complaint:created",
+                complaintId: fakeComplaint._id,
+                subType: "TEST_NOTIFICATION",
+            },
+        });
+
+        console.log(`[TEST] Notification created with status: ${notification.status}`);
+
+        let message = "Notification sent successfully";
+        if (!fcmInitialized) {
+            message = "WARNING: FCM not initialized. Check Firebase configuration.";
+        } else if (deviceTokens.length === 0) {
+            message = "WARNING: No device tokens found. Provider needs to register device token using: POST /api/v2/notification/device/register";
+        }
+
+        res.status(200).json(new ApiSuccess(200, "Test notification and socket event sent successfully", {
+            providerId,
+            providerPhone: phoneNo,
+            providerName: provider.fullName ? provider.fullName() : `${provider.firstName} ${provider.lastName}`,
+            isOnline,
+            fcmInitialized,
+            deviceTokensCount: deviceTokens.length,
+            deviceTokens: deviceTokens.length > 0 ? deviceTokens : "No tokens registered",
+            notificationStatus: notification.status,
+            notificationId: notification._id.toString(),
+            event: "complaint:created",
+            data: eventData,
+            message,
+            troubleshooting: {
+                ifNoTokens: "Register device token: POST /api/v2/notification/device/register with body: { token: 'FCM_TOKEN', deviceType: 'ANDROID' or 'IOS' }",
+                ifFcmNotInitialized: "Check Firebase service account configuration in firebase.config.ts",
+            },
+        }));
+    } catch (error: any) {
+        console.error("[TEST] Error in testProviderNotification:", error);
         next(error);
     }
 };

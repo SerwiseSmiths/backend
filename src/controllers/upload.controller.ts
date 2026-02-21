@@ -27,3 +27,16 @@ export const uploadMultiple = async (
         next(err);
     }
 };
+
+export const uploadProfile = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const result = await uploadService.uploadProfileFile(req);
+        res.status(result.statusCode).json(result);
+    } catch (err) {
+        next(err);
+    }
+};
