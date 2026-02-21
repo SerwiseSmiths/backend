@@ -61,9 +61,10 @@ class NotificationService {
         };
         
         // Convert all metadata values to strings
-        if (notification.metadata) {
-            Object.keys(notification.metadata).forEach(key => {
-                const value = notification.metadata[key];
+        const metadata = notification.metadata;
+        if (metadata) {
+            Object.keys(metadata).forEach(key => {
+                const value = metadata[key];
                 if (value !== null && value !== undefined) {
                     dataPayload[key] = typeof value === 'string' ? value : JSON.stringify(value);
                 }
@@ -85,11 +86,12 @@ class NotificationService {
         // Log detailed error information for failed tokens
         if (response.failureCount > 0) {
             response.responses.forEach((resp, idx) => {
-                if (!resp.success) {
-                    console.error(`[FCM] Token ${idx} (${tokens[idx].substring(0, 20)}...) failed:`, {
+                const token = tokens[idx];
+                if (!resp.success && token) {
+                    console.error(`[FCM] Token ${idx} (${token.substring(0, 20)}...) failed:`, {
                         error: resp.error?.code || 'UNKNOWN',
                         message: resp.error?.message || 'No error message',
-                        token: tokens[idx].substring(0, 30) + '...'
+                        token: token.substring(0, 30) + '...'
                     });
                     
                     // Handle specific error codes
@@ -115,9 +117,10 @@ class NotificationService {
         };
         
         // Convert all metadata values to strings
-        if (notification.metadata) {
-            Object.keys(notification.metadata).forEach(key => {
-                const value = notification.metadata[key];
+        const metadata = notification.metadata;
+        if (metadata) {
+            Object.keys(metadata).forEach(key => {
+                const value = metadata[key];
                 if (value !== null && value !== undefined) {
                     dataPayload[key] = typeof value === 'string' ? value : JSON.stringify(value);
                 }

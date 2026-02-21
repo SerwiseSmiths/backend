@@ -131,7 +131,7 @@ class PaymentCalculationService {
 
       const data: StrapiResponse<StrapiSubscription> = await response.json();
       const subscriptions = Array.isArray(data.data) ? data.data : [data.data];
-      return subscriptions.length > 0 ? subscriptions[0] : null;
+      return (subscriptions.length > 0 ? subscriptions[0] : undefined) ?? null;
     } catch (error) {
       console.error(`Error fetching subscription ${planType} from Strapi:`, error);
       return null;
