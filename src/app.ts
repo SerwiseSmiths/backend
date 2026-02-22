@@ -23,6 +23,7 @@ import uploadRoutes from "./routes/upload.route";
 import chatRoutes from "./routes/chat.route";
 import circleRoutes from "./routes/circle.route";
 import configRoutes from "./routes/config.route";
+import healthRoutes from "./routes/health.route";
 
 const app: Application = express();
 app.use(morgan("dev"));
@@ -48,6 +49,7 @@ app.use(`${BASE_URL}/wallet`, walletRoutes);
 app.use(`${BASE_URL}/notification`, notificationRoutes);
 app.use(`${BASE_URL}/upload`, uploadRoutes);
 app.use(`${BASE_URL}/config`, configRoutes);
+app.use(`${BASE_URL}/health`, healthRoutes);
 // app.use(errorHandler);
 
 export default app;
