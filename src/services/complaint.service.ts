@@ -17,26 +17,41 @@ export const createComplaint = async (
 ) => {
   console.log("Creating complaint with data:", data, "for user:", userId);
 
-  // Build complaint data - user from auth, not body
+  // Build complaint data - user from auth, not body; provider set by assignment flow
   const complaintData: Partial<IComplaint> = {
     ...data,
     user: userId,
     stage: "ENTRANCE", // Default status
   };
 
-  // Always auto-assign provider
-  const provider = await getAutoAssignedProvider();
-  if (!provider) throw new ApiError(400, "No provider available");
-  complaintData.provider = provider;
-
   const complaint = await complaintRepo.createComplaint(complaintData);
 
-  // Emit WebSocket events
-  socketService.emitComplaintCreated(
-    userId.toString(),
-    provider.toString(),
-    complaint
-  );
+  // Assign to first available provider (30s accept/reject flow)
+  const provider = await getAutoAssignedProvider();
+  if (provider) {
+    const providerAssignmentService = (await import("./providerAssignment.service")).default;
+    await providerAssignmentService.assignToProvider(
+      complaint._id.toString(),
+      provider.toString()
+    );
+    // Notify user that request was submitted
+    socketService.emitToUser(
+      userId.toString(),
+      "complaint:created",
+      { complaint, userId: userId.toString(), providerId: provider.toString() },
+      "Complaint Created",
+      "Your service request has been submitted"
+    );
+  } else {
+    // No provider available; notify user only
+    socketService.emitToUser(
+      userId.toString(),
+      "complaint:created",
+      { complaint, userId: userId.toString(), providerId: null },
+      "Complaint Created",
+      "Your service request has been submitted. We're finding a provider."
+    );
+  }
 
   return new ApiSuccess(201, "Complaint created successfully", { complaint });
 };

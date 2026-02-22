@@ -45,6 +45,8 @@ export interface IComplaint extends Document {
   providerAccepted?: boolean;
   providerAcceptedAt?: Date | null;
   providerAssignmentExpiry?: Date | null;
+  /** Provider IDs that rejected or timed out (so we don't re-assign) */
+  rejectedProviderIds?: mongodbId[];
 
   // Entry QR validation
   entryQrToken?: string | null;

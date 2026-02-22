@@ -1,0 +1,1 @@
+{"version":3,"file":"Quote.schema.d.ts","sourceRoot":"","sources":["Quote.schema.ts"],"names":[],"mappings":"AAAA,OAAO,EAAiB,QAAQ,EAAE,MAAM,UAAU,CAAC;AAEnD,MAAM,WAAW,MAAO,SAAQ,QAAQ;IACtC,KAAK,EAAE,MAAM,EAAE,CAAC;IAChB,KAAK,EAAE,MAAM,CAAC;IACd,MAAM,EAAE,OAAO,CAAC;CACjB;AAQD,eAAO,MAAM,UAAU;;;;OAAsC,CAAC"}

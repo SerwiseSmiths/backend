@@ -44,12 +44,16 @@ export async function registerUser(
     }
   }
 
+  console.log(value);
+
   // generate unique username
   const username = await usernameService.generateUniqueUsername(value.firstName, value.lastName);
   value.username = username;
 
   //save user to database
   const newUser = await userRepo.createUser(value);
+
+  console.log(newUser);
 
   return new ApiSuccess<userApiData>(
     201,

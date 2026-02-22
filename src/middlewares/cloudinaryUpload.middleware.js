@@ -10,8 +10,8 @@ exports.cloudinaryUploadMiddleware = [
     upload.single("file"),
     async (req, res, next) => {
         try {
-            console.log(req);
-            console.log("File received:", req.file);
+            console.log(!req.file);
+            console.log(req.body);
             let result;
             if (!req.file) {
                 // result = {
@@ -25,12 +25,15 @@ exports.cloudinaryUploadMiddleware = [
                 result = await (0, upload_util_1.uploadToCloudinary)(req.file.path, "myApp");
                 // remove temp file after upload
                 fs.unlinkSync(req.file.path);
+                console.log(result);
+                // attach cloudinary response to req (only when a file was uploaded and upload succeeded)
+                if (result?.secure_url != null) {
+                    req.cloudinary = {
+                        url: result.secure_url,
+                        publicId: result.public_id,
+                    };
+                }
             }
-            // attach cloudinary response to req
-            req.cloudinary = {
-                url: result.secure_url,
-                publicId: result.public_id,
-            };
             next();
         }
         catch (error) {

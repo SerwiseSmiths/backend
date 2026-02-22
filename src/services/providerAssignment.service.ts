@@ -1,4 +1,5 @@
 import { ComplaintModel } from "../models/schema/Complaint.schema";
+import UserModel from "../models/schema/User.schema";
 import socketService from "./socket.service";
 
 interface PendingAssignment {
@@ -25,6 +26,7 @@ class ProviderAssignmentService {
         await ComplaintModel.findByIdAndUpdate(complaintId, {
             provider: providerId,
             providerAccepted: false,
+            providerAcceptedAt: null,
             providerAssignmentExpiry: new Date(expiryTime),
         });
 
@@ -43,10 +45,17 @@ class ProviderAssignmentService {
 
         console.log(`Complaint ${complaintId} assigned to provider ${providerId} with 30s timeout`);
 
-        // Emit event to provider
+        // Fetch complaint with populated fields for popup
+        const complaint = await ComplaintModel.findById(complaintId)
+            .populate("user")
+            .populate("addressId")
+            .populate("deviceId");
+
+        // Emit event to provider (include complaint so Radix can show popup)
         socketService.emitToProvider(providerId, "complaint:assigned", {
             complaintId,
             expiryIn: this.TIMEOUT_DURATION,
+            complaint: complaint ?? undefined,
         }, true);
     }
 
@@ -126,34 +135,58 @@ class ProviderAssignmentService {
     }
 
     /**
-     * Find next available provider and assign
+     * Find next available provider (excluding rejected) and assign; if none, set provider to null.
      */
     private async reassignToNextProvider(complaintId: string): Promise<void> {
-        // TODO: Implement logic to find next available provider
-        // For now, just update complaint to remove current provider
         const complaint = await ComplaintModel.findById(complaintId).populate("user");
         if (!complaint) return;
 
+        const currentProviderId = typeof complaint.provider === "object" && (complaint.provider as any)?._id
+            ? (complaint.provider as any)._id.toString()
+            : complaint.provider?.toString() || null;
+
+        const rejectedIds: string[] = Array.from(complaint.rejectedProviderIds || []).map((id: any) =>
+            typeof id === "object" && id?._id ? id._id.toString() : id?.toString()
+        ).filter(Boolean);
+        if (currentProviderId) {
+            rejectedIds.push(currentProviderId);
+        }
+
+        const nextProvider = await UserModel.findOne({
+            userType: "provider",
+            isDeleted: false,
+            _id: { $nin: rejectedIds },
+        });
+
+        if (nextProvider) {
+            await ComplaintModel.findByIdAndUpdate(complaintId, {
+                rejectedProviderIds: rejectedIds,
+            });
+            await this.assignToProvider(complaintId, nextProvider._id.toString());
+            console.log(`Complaint ${complaintId} reassigned to provider ${nextProvider._id}`);
+            return;
+        }
+
+        // No more providers: clear provider and notify user
         await ComplaintModel.findByIdAndUpdate(complaintId, {
             provider: null,
             providerAccepted: false,
             providerAcceptedAt: null,
             providerAssignmentExpiry: null,
+            rejectedProviderIds: rejectedIds,
         });
 
         const userId = (complaint.user as any)?._id?.toString() || "";
 
-        // Notify customer that we're finding another provider
         socketService.emitToUser(
             userId,
             "complaint:provider_timeout",
             { complaintId },
-            "Finding New Provider",
-            "Previous provider didn't respond. Finding another service provider..."
+            "No Provider Available",
+            "We couldn't find an available provider right now. We'll notify you when one is available."
         );
 
-        // TODO: Trigger provider matching logic here
-        console.log(`Complaint ${complaintId} ready for reassignment`);
+        console.log(`Complaint ${complaintId}: no more providers; provider set to empty`);
     }
 
     /**

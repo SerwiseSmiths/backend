@@ -41,7 +41,15 @@ export const registerUser = async (
   try {
     const userData = req.body;
 
-    userData.profileImage = (req as any).cloudinary?.url;
+    if (!userData || typeof userData !== "object" || Object.keys(userData).length === 0) {
+      return next(
+        new ApiError(
+          400,
+          "Request body is required. Send JSON with header: Content-Type: application/json",
+          "Validation error"
+        )
+      );
+    }
 
     const newUserResult = await userService.registerUser(userData);
     if (
@@ -52,6 +60,8 @@ export const registerUser = async (
     ) {
       next(new ApiError(500, "user not registered", "Internal server error"));
     }
+
+    console.log(newUserResult);
 
     const userResult = await userService.retirveUserById(
       newUserResult.data!.user._id

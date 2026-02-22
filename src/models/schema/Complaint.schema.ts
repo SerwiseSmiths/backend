@@ -81,6 +81,7 @@ const complaintSchema = new Schema<IComplaint>(
     providerAccepted: { type: Boolean, default: false },
     providerAcceptedAt: { type: Date, default: null },
     providerAssignmentExpiry: { type: Date, default: null },
+    rejectedProviderIds: { type: [Schema.Types.ObjectId], default: [] },
 
     payment: {
       type: Schema.Types.ObjectId,
