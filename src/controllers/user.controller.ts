@@ -39,7 +39,28 @@ export const registerUser = async (
   next: ExpressNextFunction
 ): Promise<void> => {
   try {
-    const userData = req.body;
+    const userData = req.body as any;
+
+    const verificationSignature = userData.verificationSignature as string | undefined;
+    if (!verificationSignature) {
+      return next(new ApiError(400, "verificationSignature is required for signup", "Validation error"));
+    }
+
+    const jwt = require("jsonwebtoken");
+    const ACCESS_SECRET = process.env.JWT_SECRET!;
+
+    let payload: any;
+    try {
+      payload = jwt.verify(verificationSignature, ACCESS_SECRET);
+    } catch (err) {
+      return next(new ApiError(400, "Invalid or expired verification signature", "Validation error"));
+    }
+
+    if (!payload || payload.flow !== "signup" || !payload.phoneNo) {
+      return next(new ApiError(400, "Invalid verification payload", "Validation error"));
+    }
+
+    userData.phoneNo = payload.phoneNo;
 
     if (!userData || typeof userData !== "object" || Object.keys(userData).length === 0) {
       return next(

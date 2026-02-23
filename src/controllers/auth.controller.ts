@@ -9,6 +9,18 @@ export const login = async (req: ExpressRequest, res: ExpressResponse, next: Exp
     return res.status(loginResult.statusCode).json(loginResult);
 };
 
+export const generateOtp = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
+    const { phoneNo }: { phoneNo: string } = req.body;
+    const result = await authService.generateOtp(phoneNo);
+    return res.status(result.statusCode).json(result);
+};
+
+export const verifyOtp = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
+    const { phoneNo, otp, userType, flow }: { phoneNo: string, otp: string, userType?: string, flow?: "login" | "signup" } = req.body;
+    const result = await authService.verifyOtp(phoneNo, otp, userType, flow);
+    return res.status(result.statusCode).json(result);
+};
+
 // ============================================================
 // GET /auth/me — returns the authenticated user's profile
 // ============================================================
@@ -36,4 +48,10 @@ export const me = async (req: ExpressRequest, res: ExpressResponse, next: Expres
     } catch (error) {
         next(error);
     }
+};
+
+export const truecallerAuth = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
+    const { payload, signature, requestNonce, userType }: { payload: string; signature: string; requestNonce: string; userType?: string } = req.body;
+    const result = await authService.truecallerAuth({ payload, signature, requestNonce, userType });
+    return res.status(result.statusCode).json(result);
 };
