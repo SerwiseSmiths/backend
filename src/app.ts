@@ -3,6 +3,7 @@ import * as express from "express";
 import type { Application, Request, Response } from "express";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 import * as morgan from "morgan";
+import { isProd } from "./config/env.config";
 
 import userRoutes from "./routes/user.route";
 import authRoutes from "./routes/auth.route";
@@ -26,7 +27,7 @@ import configRoutes from "./routes/config.route";
 import healthRoutes from "./routes/health.route";
 
 const app: Application = express();
-app.use(morgan("dev"));
+app.use(morgan(isProd ? "combined" : "dev"));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const BASE_URL = "/api/v2";
