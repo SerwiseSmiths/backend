@@ -52,6 +52,11 @@ export const me = async (req: ExpressRequest, res: ExpressResponse, next: Expres
 
 export const truecallerAuth = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
     const { payload, signature, requestNonce, userType }: { payload: string; signature: string; requestNonce: string; userType?: string } = req.body;
-    const result = await authService.truecallerAuth({ payload, signature, requestNonce, userType });
+    const result = await authService.truecallerAuth({
+        payload,
+        signature,
+        requestNonce,
+        ...(userType !== undefined && { userType }),
+    });
     return res.status(result.statusCode).json(result);
 };
