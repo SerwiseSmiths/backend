@@ -1,4 +1,5 @@
-import "dotenv/config";
+import * as dotenv from "dotenv";
+dotenv.config();
 import { connectDB } from "../src/config/mongo.config";
 import UserModel from "../src/models/schema/User.schema";
 import WalletModel from "../src/models/schema/Wallet.schema";

@@ -11,7 +11,8 @@
  * Run this script with: npx ts-node scripts/migrate-complaint-stages.ts
  */
 
-import "dotenv/config";
+import * as dotenv from "dotenv";
+dotenv.config();
 import mongoose from "mongoose";
 import { ComplaintModel } from "../src/models/schema/Complaint.schema";
 
