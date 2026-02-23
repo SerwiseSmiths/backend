@@ -11,7 +11,8 @@ Base URL: `/api/v2/user`
 - `Content-Type: multipart/form-data` (if uploading image) or `application/json`
 
 **Body Parameters:**
-- `phoneNo` (string, required, 10-15 digits)
+- `verificationSignature` (string, required): JWT from `POST /auth/otp/verify` with `flow="signup"`
+- `phoneNo` (string, ignored, 10-15 digits)
 - `firstName` (string, required)
 - `lastName` (string, required)
 - `source` (string, required)
@@ -25,7 +26,7 @@ Base URL: `/api/v2/user`
 curl -X POST http://localhost:3000/api/v2/user \
   -H "Content-Type: application/json" \
   -d '{
-    "phoneNo": "9876543210",
+    "verificationSignature": "<jwt-token-from-otp-verify>",
     "firstName": "John",
     "lastName": "Doe",
     "source": "app_signup",
@@ -37,7 +38,7 @@ curl -X POST http://localhost:3000/api/v2/user \
 ```bash
 curl -X POST http://localhost:3000/api/v2/user \
   -H "Content-Type: multipart/form-data" \
-  -F "phoneNo=9876543210" \
+  -F "verificationSignature=<jwt-token-from-otp-verify>" \
   -F "firstName=John" \
   -F "lastName=Doe" \
   -F "source=app_signup" \
