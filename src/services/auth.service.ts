@@ -4,16 +4,35 @@ import * as UserRepo from "../repositories/user.repo";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 import * as OtpRepo from "../repositories/otp.repo";
 import * as bcrypt from "bcryptjs";
+import { sendWhatsAppText } from "./msg91WhatsApp.service";
+import { verifyTruecallerResponse } from "./truecaller.service";
 
 const OTP_TTL_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 5;
+
+const OTP_MESSAGE_TEMPLATE = "Your OTP is {otp}. Valid for {minutes} minutes. Do not share.";
 
 const generateOtpCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 const sendOtp = async (phoneNo: string, otp: string) => {
-  console.log(`OTP for ${phoneNo}: ${otp}`);
+  const text = OTP_MESSAGE_TEMPLATE
+    .replace("{otp}", otp)
+    .replace("{minutes}", String(OTP_TTL_MINUTES));
+
+  const result = await sendWhatsAppText({
+    recipientNumber: phoneNo,
+    text,
+  });
+
+  if (!result.success) {
+    console.error(`OTP send failed for ${phoneNo}:`, result.error);
+    // In development, still log OTP to console for testing without WhatsApp
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`OTP for ${phoneNo}: ${otp}`);
+    }
+  }
 };
 
 export const login = async (_phoneNo: string, _userType?: string) => {
@@ -124,3 +143,60 @@ export const verifyOtp = async (_phoneNo: string, otp: string, _userType?: strin
 };
 
 export const logout = async () => {};
+
+export const truecallerAuth = async (params: {
+  payload: string;
+  signature: string;
+  requestNonce: string;
+  userType?: string;
+}) => {
+  const { payload, signature, requestNonce, userType } = params;
+
+  if (!payload || !signature || !requestNonce) {
+    throw new ApiError(400, "payload, signature and requestNonce are required");
+  }
+
+  const profile = await verifyTruecallerResponse({ payload, signature, requestNonce });
+
+  const rawPhone = (profile.phoneNumber ?? "").replace(/\D/g, "");
+  if (!rawPhone) {
+    throw new ApiError(400, "Phone number missing in Truecaller profile");
+  }
+
+  const normalizedPhone = normalizeDbPhone(rawPhone);
+
+  console.log(
+    `Truecaller auth for phone: ${normalizedPhone}, name: ${profile.firstName || ""} ${
+      profile.lastName || ""
+    }`
+  );
+
+  let user = await UserRepo.retriveUserByPhoneNo(normalizedPhone);
+  const isNewUser = !user;
+
+  if (!user) {
+    user = await UserModel.create({
+      phoneNo: normalizedPhone,
+      userType: userType || "customer",
+      firstName: profile.firstName || "User",
+      lastName: profile.lastName || normalizedPhone.slice(-4),
+    });
+  }
+
+  const tokens = await user.generateAuthTokens();
+
+  return new ApiSuccess(200, "User logged in via Truecaller", {
+    tokens,
+    user,
+    isNewUser,
+    authMethod: "truecaller",
+  });
+};
+
+function normalizeDbPhone(phone: string): string {
+  // Store 10-digit local number for consistency with existing users
+  if (phone.length > 10 && phone.startsWith("91")) {
+    return phone.slice(-10);
+  }
+  return phone;
+}
