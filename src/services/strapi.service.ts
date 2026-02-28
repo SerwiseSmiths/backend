@@ -3,56 +3,43 @@
 
 import { getStrapiHeaders, getStrapiUrl } from "../config/strapi.config";
 import {
-    IStrapiDeviceType,
-    IStrapiResponse,
-    IStrapiSingleResponse,
+  IStrapiDeviceType,
+  IStrapiResponse,
+  IStrapiSingleResponse,
 } from "../types/strapi.type";
 import ApiError from "../utils/api/ApiError.api.util";
+import { serverQueryClient } from "../utils/serverQueryClient";
 
-// In-memory cache for device types
-let deviceTypeCache: IStrapiDeviceType[] | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const DEVICE_TYPES_QUERY_KEY = ["strapi", "device-types"];
 
 /**
  * Fetch all device types from Strapi CMS
  */
 export const fetchDeviceTypes = async (): Promise<IStrapiDeviceType[]> => {
-    // Return cached data if still valid
-    if (deviceTypeCache && Date.now() - cacheTimestamp < CACHE_TTL) {
-        return deviceTypeCache;
-    }
-
-    try {
+  return serverQueryClient.fetchQuery({
+    queryKey: DEVICE_TYPES_QUERY_KEY,
+    queryFn: async () => {
+      try {
         const response = await fetch(getStrapiUrl("/device-types"), {
-            method: "GET",
-            headers: getStrapiHeaders(),
+          method: "GET",
+          headers: getStrapiHeaders(),
         });
 
         if (!response.ok) {
-            console.warn(
-                `Strapi API returned ${response.status}: ${response.statusText}`
-            );
-            // Return cached data if available, even if stale
-            if (deviceTypeCache) {
-                return deviceTypeCache;
-            }
-            throw new ApiError(502, "Failed to fetch device types from CMS");
+          console.warn(
+            `Strapi API returned ${response.status}: ${response.statusText}`
+          );
+          throw new ApiError(502, "Failed to fetch device types from CMS");
         }
 
         const data: IStrapiResponse<IStrapiDeviceType> = await response.json();
-        deviceTypeCache = data.data;
-        cacheTimestamp = Date.now();
-
-        return deviceTypeCache;
-    } catch (error) {
+        return data.data;
+      } catch (error) {
         console.error("Error fetching device types from Strapi:", error);
-        // Return cached data if available
-        if (deviceTypeCache) {
-            return deviceTypeCache;
-        }
         throw new ApiError(502, "CMS service unavailable");
-    }
+      }
+    },
+  });
 };
 
 /**
@@ -61,12 +48,15 @@ export const fetchDeviceTypes = async (): Promise<IStrapiDeviceType[]> => {
 export const fetchDeviceTypeById = async (
     strapiId: number | string
 ): Promise<IStrapiDeviceType | null> => {
-    // Check cache first
-    if (deviceTypeCache && Date.now() - cacheTimestamp < CACHE_TTL) {
-        const cached = deviceTypeCache.find(
-            (dt) => dt.id === Number(strapiId)
-        );
-        if (cached) return cached;
+    // Prefer the cached list when available
+    try {
+        const allTypes = await fetchDeviceTypes();
+        const fromList = allTypes.find((dt) => dt.id === Number(strapiId));
+        if (fromList) {
+            return fromList;
+        }
+    } catch {
+        // Fall through to direct fetch if list query fails
     }
 
     try {
@@ -105,8 +95,7 @@ export const validateDeviceTypeId = async (
  * Clear the device type cache (useful for testing or manual refresh)
  */
 export const clearDeviceTypeCache = (): void => {
-    deviceTypeCache = null;
-    cacheTimestamp = 0;
+    serverQueryClient.removeQueries({ queryKey: DEVICE_TYPES_QUERY_KEY });
 };
 
 /**
