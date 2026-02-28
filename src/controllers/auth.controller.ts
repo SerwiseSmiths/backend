@@ -60,3 +60,13 @@ export const truecallerAuth = async (req: ExpressRequest, res: ExpressResponse, 
     });
     return res.status(result.statusCode).json(result);
 };
+
+export const truecallerOAuthAuth = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
+    const { authorizationCode, codeVerifier, userType }: { authorizationCode: string; codeVerifier: string; userType?: string } = req.body;
+    const result = await authService.truecallerOAuthAuth({
+        authorizationCode,
+        codeVerifier,
+        ...(userType !== undefined && { userType }),
+    });
+    return res.status(result.statusCode).json(result);
+};

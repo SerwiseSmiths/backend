@@ -1,12 +1,15 @@
 import axios, { AxiosError } from "axios";
 
 const MSG91_WHATSAPP_BASE =
-  "https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message";
+  "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/";
 
 export interface SendWhatsAppTextOptions {
   /** Recipient mobile number with country code (e.g. 919876543210) */
   recipientNumber: string;
-  /** Message body (plain text) */
+  /**
+   * Value for template variable (e.g. OTP code).
+   * Mapped to MSG91 body_var_1.
+   */
   text: string;
 }
 
@@ -25,24 +28,65 @@ export const sendWhatsAppText = async (
 
   if (!authkey || !integratedNumber) {
     console.error(
-      "MSG91 WhatsApp: Missing MSG91_AUTH_KEY or MSG91_WHATSAPP_INTEGRATED_NUMBER"
+      "MSG91 WhatsApp: Missing MSG91_AUTH_KEY or MSG91_WHATSAPP_INTEGRATED_NUMBER",
+      {
+        hasAuthKey: !!authkey,
+        hasIntegratedNumber: !!integratedNumber,
+      }
     );
     return { success: false, error: "WhatsApp OTP not configured" };
   }
 
   const recipientNumber = normalizePhoneForMsg91(options.recipientNumber);
+  const templateName = process.env.MSG91_TEMPLATE_NAME || "otp_templete";
+  const templateNamespace =
+    process.env.MSG91_TEMPLATE_NAMESPACE ||
+    "e4734292_b71d_41f3_9f9a_b661b6739954";
+
+  const requestBody = {
+    integrated_number: integratedNumber,
+    content_type: "template" as const,
+    payload: {
+      messaging_product: "whatsapp",
+      type: "template",
+      template: {
+        name: templateName,
+        language: {
+          code: "en",
+          policy: "deterministic",
+        },
+        namespace: templateNamespace,
+        to_and_components: [
+          {
+            to: [recipientNumber],
+            components: {
+              body_1: {
+                type: "text",
+                value:  options.text,
+              },
+              button_1: {
+                subtype: "url",
+                type: "text",
+                value: options.text,
+              }
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  console.log("MSG91 WhatsApp: preparing to send template", {
+    to: recipientNumber,
+    templateName,
+    templateNamespace,
+  });
 
   try {
     const response = await axios.post(
       MSG91_WHATSAPP_BASE,
-      {},
+      requestBody,
       {
-        params: {
-          integrated_number: integratedNumber,
-          recipient_number: recipientNumber,
-          content_type: "text",
-          text: options.text,
-        },
         headers: {
           accept: "application/json",
           "content-type": "application/json",
@@ -53,6 +97,13 @@ export const sendWhatsAppText = async (
     );
 
     const data = response.data as { request_id?: string; type?: string };
+
+    console.log("MSG91 WhatsApp: message sent successfully", {
+      to: recipientNumber,
+      messageId: data.request_id,
+      type: data.type,
+    });
+
     return {
       success: true,
       ...(data.request_id != null && { messageId: data.request_id }),
@@ -70,7 +121,10 @@ export const sendWhatsAppText = async (
     console.error(
       `MSG91 WhatsApp send failed (${status}):`,
       errorMessage,
-      body ?? ""
+      {
+        to: recipientNumber,
+        responseBody: body ?? "",
+      }
     );
     return {
       success: false,
