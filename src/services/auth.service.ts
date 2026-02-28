@@ -4,8 +4,12 @@ import * as UserRepo from "../repositories/user.repo";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 import * as OtpRepo from "../repositories/otp.repo";
 import * as bcrypt from "bcryptjs";
+import axios from "axios";
 import { sendWhatsAppText } from "./msg91WhatsApp.service";
 import { verifyTruecallerResponse } from "./truecaller.service";
+
+const TRUECALLER_TOKEN_URL = "https://oauth-account-noneu.truecaller.com/v1/token";
+const TRUECALLER_USERINFO_URL = "https://oauth-account-noneu.truecaller.com/v1/userinfo";
 
 const OTP_TTL_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 5;
@@ -23,15 +27,18 @@ const sendOtp = async (phoneNo: string, otp: string) => {
 
   const result = await sendWhatsAppText({
     recipientNumber: phoneNo,
-    text,
+    text: otp,
   });
 
   if (!result.success) {
     console.error(`OTP send failed for ${phoneNo}:`, result.error);
-    // In development, still log OTP to console for testing without WhatsApp
+    // In non-production, still log OTP for manual testing
     if (process.env.NODE_ENV !== "production") {
       console.log(`OTP for ${phoneNo}: ${otp}`);
     }
+
+    // Do not continue with flow if OTP couldn't be sent
+    throw new ApiError(502, "Failed to send OTP, please try again");
   }
 };
 
@@ -180,6 +187,83 @@ export const truecallerAuth = async (params: {
       userType: userType || "customer",
       firstName: profile.firstName || "User",
       lastName: profile.lastName || normalizedPhone.slice(-4),
+    });
+  }
+
+  const tokens = await user.generateAuthTokens();
+
+  return new ApiSuccess(200, "User logged in via Truecaller", {
+    tokens,
+    user,
+    isNewUser,
+    authMethod: "truecaller",
+  });
+};
+
+/**
+ * Truecaller OAuth 3.2.1 flow: exchange authorization code for token, fetch profile, login.
+ */
+export const truecallerOAuthAuth = async (params: {
+  authorizationCode: string;
+  codeVerifier: string;
+  userType?: string;
+}) => {
+  const { authorizationCode, codeVerifier, userType } = params;
+  const clientId = process.env.TRUECALLER_CLIENT_ID;
+
+  if (!authorizationCode || !codeVerifier) {
+    throw new ApiError(400, "authorizationCode and codeVerifier are required");
+  }
+  if (!clientId) {
+    throw new ApiError(500, "Truecaller client ID not configured");
+  }
+
+  const tokenRes = await axios.post(
+    TRUECALLER_TOKEN_URL,
+    new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: clientId,
+      code: authorizationCode,
+      code_verifier: codeVerifier,
+    }).toString(),
+    {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      timeout: 10000,
+    }
+  );
+
+  const accessToken = tokenRes.data?.access_token;
+  if (!accessToken) {
+    throw new ApiError(401, "Failed to get Truecaller access token");
+  }
+
+  const profileRes = await axios.get(TRUECALLER_USERINFO_URL, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    timeout: 10000,
+  });
+
+  const profile = profileRes.data;
+  const rawPhone = (profile?.phone_number ?? "").replace(/\D/g, "");
+  if (!rawPhone) {
+    throw new ApiError(400, "Phone number missing in Truecaller profile");
+  }
+
+  const normalizedPhone = normalizeDbPhone(rawPhone);
+  const firstName = profile?.given_name || "User";
+  const lastName = profile?.family_name || normalizedPhone.slice(-4);
+
+  console.log(`Truecaller OAuth auth for phone: ${normalizedPhone}, name: ${firstName} ${lastName}`);
+
+  let user = await UserRepo.retriveUserByPhoneNo(normalizedPhone);
+  const isNewUser = !user;
+
+  if (!user) {
+    user = await UserModel.create({
+      phoneNo: normalizedPhone,
+      userType: userType || "customer",
+      firstName,
+      lastName,
+      profileImage: profile?.picture ?? undefined,
     });
   }
 

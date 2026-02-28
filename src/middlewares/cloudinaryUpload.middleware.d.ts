@@ -1,2 +1,0 @@
-export declare const cloudinaryUploadMiddleware: import("express").RequestHandler<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs, Record<string, any>>[];
-//# sourceMappingURL=cloudinaryUpload.middleware.d.ts.map
