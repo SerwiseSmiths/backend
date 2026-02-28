@@ -8,6 +8,7 @@ router.post("/login", authContoller.login);
 router.post("/otp/generate", authContoller.generateOtp);
 router.post("/otp/verify", authContoller.verifyOtp);
 router.post("/truecaller/verify", authContoller.truecallerAuth);
+router.post("/truecaller/oauth", authContoller.truecallerOAuthAuth);
 router.get("/me", auth, authContoller.me); // Protected: returns current user profile
 
 export default router;
