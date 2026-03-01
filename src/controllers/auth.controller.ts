@@ -5,7 +5,9 @@ import ApiError from "../utils/api/ApiError.api.util";
 
 export const login = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
     const { phoneNo, userType }: { phoneNo: string, userType?: string } = req.body;
-    const loginResult = await authService.login(phoneNo!, userType);
+    const appContextHeader = req.headers["x-app-context"];
+    const appContext = Array.isArray(appContextHeader) ? appContextHeader[0] : appContextHeader;
+    const loginResult = await authService.login(phoneNo!, userType, appContext);
     return res.status(loginResult.statusCode).json(loginResult);
 };
 
@@ -17,7 +19,9 @@ export const generateOtp = async (req: ExpressRequest, res: ExpressResponse, nex
 
 export const verifyOtp = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
     const { phoneNo, otp, userType, flow }: { phoneNo: string, otp: string, userType?: string, flow?: "login" | "signup" } = req.body;
-    const result = await authService.verifyOtp(phoneNo, otp, userType, flow);
+    const appContextHeader = req.headers["x-app-context"];
+    const appContext = Array.isArray(appContextHeader) ? appContextHeader[0] : appContextHeader;
+    const result = await authService.verifyOtp(phoneNo, otp, userType, flow, appContext);
     return res.status(result.statusCode).json(result);
 };
 

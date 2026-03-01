@@ -8,6 +8,9 @@ import {
   softDeleteDeviceType,
 } from "../repositories/deviceType.repo";
 import { deviceTypeValidationSchema } from "../models/validation/deviceType.validation";
+import { serverQueryClient } from "../utils/serverQueryClient";
+
+const DEVICE_TYPES_QUERY_KEY = ["device-types", "all"];
 
 export const create = async (data: any) => {
   const { error, value } = deviceTypeValidationSchema.validate(data);
@@ -20,11 +23,18 @@ export const create = async (data: any) => {
   }
 
   const newDT = await createDeviceType(value);
+
+  // Invalidate cached list so subsequent reads get fresh data
+  await serverQueryClient.invalidateQueries({ queryKey: DEVICE_TYPES_QUERY_KEY });
+
   return new ApiSuccess(201, "Device Type created", { deviceType: newDT });
 };
 
 export const retrieveAll = async () => {
-  const list = await getAllDeviceTypes();
+  const list = await serverQueryClient.fetchQuery({
+    queryKey: DEVICE_TYPES_QUERY_KEY,
+    queryFn: () => getAllDeviceTypes(),
+  });
   return new ApiSuccess(200, "Device Types retrieved", { deviceTypes: list });
 };
 
@@ -39,6 +49,10 @@ export const update = async (id: string, data: any) => {
   if (!dt) throw new ApiError(404, "Device Type not found");
 
   const updated = await updateDeviceType(id, data);
+
+  // Ensure cached list reflects updated entity
+  await serverQueryClient.invalidateQueries({ queryKey: DEVICE_TYPES_QUERY_KEY });
+
   return new ApiSuccess(200, "Device Type updated", { deviceType: updated });
 };
 
@@ -47,5 +61,9 @@ export const softDelete = async (id: string) => {
   if (!dt) throw new ApiError(404, "Device Type not found");
 
   const deleted = await softDeleteDeviceType(id);
+
+  // Remove deleted item from subsequent cached reads
+  await serverQueryClient.invalidateQueries({ queryKey: DEVICE_TYPES_QUERY_KEY });
+
   return new ApiSuccess(200, "Device Type deleted", { deviceType: deleted });
 };
