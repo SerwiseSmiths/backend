@@ -33,17 +33,72 @@ class SocketService {
                 this.userSocketMap.set(userId, socket.id);
                 console.log(`User ${userId} authenticated with socket ${socket.id}`);
 
+                // Broadcast presence: online (so chat UIs can show "user is online")
+                socket.broadcast.emit("presence:change", { userId, online: true });
+
+                // Send current online user ids to this client so it can show presence
+                socket.emit(
+                    "presence:list",
+                    Array.from(this.userSocketMap.keys())
+                );
+
                 // Flush queued events for this user
                 this.flushQueuedEvents(userId);
             });
 
             socket.on("disconnect", () => {
-                // Remove from map
+                // Remove from map and broadcast offline
                 for (const [userId, socketId] of this.userSocketMap.entries()) {
                     if (socketId === socket.id) {
                         this.userSocketMap.delete(userId);
+                        this.io?.emit("presence:change", { userId, online: false });
                         console.log(`User ${userId} disconnected`);
                         break;
+                    }
+                }
+            });
+
+            // --- Typing indicator (WhatsApp-like) ---
+            socket.on("typing:start", async (data: { userId: string; targetId: string; targetType?: "User" | "Circle" }) => {
+                const { userId, targetId, targetType = "User" } = data;
+                if (targetType === "User") {
+                    const recipientSocketId = this.userSocketMap.get(targetId);
+                    if (recipientSocketId) {
+                        this.io?.to(recipientSocketId).emit("typing:start", { userId });
+                    }
+                } else {
+                    const circle = await CircleModel.findById(targetId);
+                    if (circle) {
+                        circle.members.forEach((memberId) => {
+                            if (memberId.toString() !== userId) {
+                                const memberSocketId = this.userSocketMap.get(memberId.toString());
+                                if (memberSocketId) {
+                                    this.io?.to(memberSocketId).emit("typing:start", { userId, targetId });
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+
+            socket.on("typing:stop", async (data: { userId: string; targetId: string; targetType?: "User" | "Circle" }) => {
+                const { userId, targetId, targetType = "User" } = data;
+                if (targetType === "User") {
+                    const recipientSocketId = this.userSocketMap.get(targetId);
+                    if (recipientSocketId) {
+                        this.io?.to(recipientSocketId).emit("typing:stop", { userId });
+                    }
+                } else {
+                    const circle = await CircleModel.findById(targetId);
+                    if (circle) {
+                        circle.members.forEach((memberId) => {
+                            if (memberId.toString() !== userId) {
+                                const memberSocketId = this.userSocketMap.get(memberId.toString());
+                                if (memberSocketId) {
+                                    this.io?.to(memberSocketId).emit("typing:stop", { userId, targetId });
+                                }
+                            }
+                        });
                     }
                 }
             });

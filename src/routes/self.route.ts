@@ -10,7 +10,7 @@ router.get('/devices', auth, selfController.getSelfDevices);
 router.get('/complaints', auth, selfController.getSelfComaplints);
 router.get('/wallet', auth, selfController.getSelfWallet);
 router.patch('/profile-image', auth, selfController.updateProfileImage);
-// router.patch('/', selfController.updateSelfInfo);
+router.patch('/', auth, selfController.updateSelfInfo);
 // router.delete('/', selfController.deleteSelfAccount);
 
 export default router;  
