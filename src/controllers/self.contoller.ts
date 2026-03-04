@@ -116,3 +116,15 @@ export const updateProfileImage = async (req: ExpressRequest, res: ExpressRespon
     next(error);
   }
 }
+
+export const updateSelfInfo = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
+  try {
+    const userId = req.user.id;
+    const { firstName, lastName, profileImage, email } = req.body;
+
+    const result = await userService.updateSelfInfo(userId, { firstName, lastName, profileImage, email });
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
