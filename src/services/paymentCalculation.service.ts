@@ -8,6 +8,7 @@ import { QuoteModel } from "../models/schema/Quote.schema";
 import { SubscriptionModel } from "../models/schema/subscription.schema";
 import ApiError from "../utils/api/ApiError.api.util";
 import { getStrapiHeaders, getStrapiUrl } from "../config/strapi.config";
+import { serverQueryClient } from "../utils/serverQueryClient";
 
 interface StrapiPart {
   id: number;
@@ -54,43 +55,51 @@ class PaymentCalculationService {
    * Fetch a part from Strapi by ID
    */
   private async fetchPartFromStrapi(partId: number): Promise<StrapiPart | null> {
-    try {
-      const response = await fetch(getStrapiUrl(`/parts/${partId}`), {
-        method: "GET",
-        headers: getStrapiHeaders(),
-      });
+    return serverQueryClient.fetchQuery({
+      queryKey: ["strapi", "part", partId],
+      queryFn: async () => {
+        try {
+          const response = await fetch(getStrapiUrl(`/parts/${partId}`), {
+            method: "GET",
+            headers: getStrapiHeaders(),
+          });
 
-      if (!response.ok) {
-        if (response.status === 404) {
+          if (!response.ok) {
+            if (response.status === 404) {
+              return null;
+            }
+            console.error(
+              `Failed to fetch part ${partId} from Strapi:`,
+              response.statusText
+            );
+            return null;
+          }
+
+          const data: StrapiResponse<StrapiPart> = await response.json();
+          const part = Array.isArray(data.data) ? data.data[0] : data.data;
+
+          // Handle both Strapi v4 (with attributes) and v5 (flat structure)
+          if (part && "attributes" in part) {
+            return part as StrapiPart;
+          } else if (part) {
+            // Convert flat structure to attributes structure for consistency
+            return {
+              id: (part as any).id,
+              attributes: {
+                name: (part as any).name || "",
+                price: parseFloat((part as any).price || 0),
+                type: (part as any).type,
+                category: (part as any).category,
+              },
+            } as StrapiPart;
+          }
+          return null;
+        } catch (error) {
+          console.error(`Error fetching part ${partId} from Strapi:`, error);
           return null;
         }
-        console.error(`Failed to fetch part ${partId} from Strapi:`, response.statusText);
-        return null;
-      }
-
-      const data: StrapiResponse<StrapiPart> = await response.json();
-      const part = Array.isArray(data.data) ? data.data[0] : data.data;
-      
-      // Handle both Strapi v4 (with attributes) and v5 (flat structure)
-      if (part && 'attributes' in part) {
-        return part;
-      } else if (part) {
-        // Convert flat structure to attributes structure for consistency
-        return {
-          id: (part as any).id,
-          attributes: {
-            name: (part as any).name || '',
-            price: parseFloat((part as any).price || 0),
-            type: (part as any).type,
-            category: (part as any).category,
-          }
-        };
-      }
-      return null;
-    } catch (error) {
-      console.error(`Error fetching part ${partId} from Strapi:`, error);
-      return null;
-    }
+      },
+    });
   }
 
   /**
@@ -115,27 +124,45 @@ class PaymentCalculationService {
    * Fetch subscription details from Strapi by plan type
    */
   private async fetchSubscriptionFromStrapi(planType: string): Promise<StrapiSubscription | null> {
-    try {
-      const response = await fetch(
-        getStrapiUrl(`/subscriptions?filters[plan_type][$eq]=${planType}&populate=*`),
-        {
-          method: "GET",
-          headers: getStrapiHeaders(),
+    return serverQueryClient.fetchQuery({
+      queryKey: ["strapi", "subscription", planType],
+      queryFn: async () => {
+        try {
+          const response = await fetch(
+            getStrapiUrl(
+              `/subscriptions?filters[plan_type][$eq]=${planType}&populate=*`
+            ),
+            {
+              method: "GET",
+              headers: getStrapiHeaders(),
+            }
+          );
+
+          if (!response.ok) {
+            console.error(
+              `Failed to fetch subscription ${planType} from Strapi:`,
+              response.statusText
+            );
+            return null;
+          }
+
+          const data: StrapiResponse<StrapiSubscription> =
+            await response.json();
+          const subscriptions = Array.isArray(data.data)
+            ? data.data
+            : [data.data];
+          return (
+            (subscriptions.length > 0 ? subscriptions[0] : undefined) ?? null
+          );
+        } catch (error) {
+          console.error(
+            `Error fetching subscription ${planType} from Strapi:`,
+            error
+          );
+          return null;
         }
-      );
-
-      if (!response.ok) {
-        console.error(`Failed to fetch subscription ${planType} from Strapi:`, response.statusText);
-        return null;
-      }
-
-      const data: StrapiResponse<StrapiSubscription> = await response.json();
-      const subscriptions = Array.isArray(data.data) ? data.data : [data.data];
-      return (subscriptions.length > 0 ? subscriptions[0] : undefined) ?? null;
-    } catch (error) {
-      console.error(`Error fetching subscription ${planType} from Strapi:`, error);
-      return null;
-    }
+      },
+    });
   }
 
   /**

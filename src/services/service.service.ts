@@ -3,10 +3,11 @@ import ApiError from "../utils/api/ApiError.api.util";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 import { serviceValidationSchema } from "../models/validation/service.validation";
 import { IService } from "../models/schema/Service.schema";
+import { serverQueryClient } from "../utils/serverQueryClient";
 
-export async function createService(
-  data: Partial<IService>
-) {
+const SERVICES_QUERY_KEY = ["services", "all"];
+
+export async function createService(data: Partial<IService>) {
   const { error, value } = serviceValidationSchema.validate(data);
   if (error) {
     throw new ApiError(
@@ -17,11 +18,17 @@ export async function createService(
 
   const service = await serviceRepo.createService(value);
 
+  // Invalidate cached services list after mutation
+  await serverQueryClient.invalidateQueries({ queryKey: SERVICES_QUERY_KEY });
+
   return new ApiSuccess(201, "Service created successfully", { service });
 }
 
 export async function getAllServices() {
-  const services = await serviceRepo.retrieveAllServices();
+  const services = await serverQueryClient.fetchQuery({
+    queryKey: SERVICES_QUERY_KEY,
+    queryFn: () => serviceRepo.retrieveAllServices(),
+  });
   return new ApiSuccess(200, "Services retrieved successfully", { services });
 }
 
@@ -41,6 +48,9 @@ export async function updateService(
 
   if (!service) throw new ApiError(404, "Invalid service id");
 
+  // Invalidate cached services list after mutation
+  await serverQueryClient.invalidateQueries({ queryKey: SERVICES_QUERY_KEY });
+
   return new ApiSuccess(200, "Service updated successfully", { service });
 }
 
@@ -48,6 +58,9 @@ export async function deleteService(id: string) {
   const service = await serviceRepo.deleteServiceById(id);
 
   if (!service) throw new ApiError(404, "Invalid service id");
+
+  // Invalidate cached services list so deletions are reflected
+  await serverQueryClient.invalidateQueries({ queryKey: SERVICES_QUERY_KEY });
 
   return new ApiSuccess(200, "Service deleted successfully");
 }

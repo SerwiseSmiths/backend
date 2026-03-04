@@ -42,7 +42,7 @@ const sendOtp = async (phoneNo: string, otp: string) => {
   }
 };
 
-export const login = async (_phoneNo: string, _userType?: string) => {
+export const login = async (_phoneNo: string, _userType?: string, appContext?: string) => {
   if (!_phoneNo) {
     throw new ApiError(401, "Phone no required");
   }
@@ -52,7 +52,14 @@ export const login = async (_phoneNo: string, _userType?: string) => {
   let user = await UserRepo.retriveUserByPhoneNo(_phoneNo);
   const isNewUser = !user;
 
+  const normalizedAppContext = appContext?.toLowerCase();
+  const isRadixContext = normalizedAppContext === "radix" || normalizedAppContext === "readix";
+
   if (!user) {
+    if (isRadixContext) {
+      throw new ApiError(403, "User creation not allowed from Radix");
+    }
+
     console.log(`Creating new user: ${_phoneNo}`);
 
     user = await UserModel.create({
@@ -95,7 +102,13 @@ export const generateOtp = async (_phoneNo: string) => {
   });
 };
 
-export const verifyOtp = async (_phoneNo: string, otp: string, _userType?: string, flow?: "login" | "signup") => {
+export const verifyOtp = async (
+  _phoneNo: string,
+  otp: string,
+  _userType?: string,
+  flow?: "login" | "signup",
+  appContext?: string
+) => {
   if (!_phoneNo || !otp) {
     throw new ApiError(400, "Phone no and otp required");
   }
@@ -145,7 +158,7 @@ export const verifyOtp = async (_phoneNo: string, otp: string, _userType?: strin
     });
   }
 
-  const loginResult = await login(_phoneNo, _userType);
+  const loginResult = await login(_phoneNo, _userType, appContext);
   return loginResult;
 };
 

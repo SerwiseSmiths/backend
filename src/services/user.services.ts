@@ -129,3 +129,23 @@ export async function updateProfileImage(
     { user: updatedUser }
   );
 }
+
+/**
+ * Updates a user's basic info.
+ */
+export async function updateSelfInfo(
+  _id: mongodbId,
+  data: { firstName?: string; lastName?: string; profileImage?: string | null; email?: string }
+): Promise<ApiSuccessType<userApiData>> {
+  const updatedUser = await userRepo.updateUserById(_id, data);
+
+  if (!updatedUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return new ApiSuccess<userApiData>(
+    200,
+    "Profile updated successfully",
+    { user: updatedUser }
+  );
+}
