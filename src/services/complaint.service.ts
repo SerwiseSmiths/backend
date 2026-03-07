@@ -24,15 +24,20 @@ export const createComplaint = async (
     stage: "ENTRANCE", // Default status
   };
 
-  const complaint = await complaintRepo.createComplaint(complaintData);
-
-  // Assign to first available provider (30s accept/reject flow)
+  // Force assign provider directly (skip 30s accept/reject flow)
   const provider = await getAutoAssignedProvider();
   if (provider) {
-    const providerAssignmentService = (await import("./providerAssignment.service")).default;
-    await providerAssignmentService.assignToProvider(
-      complaint._id.toString(),
-      provider.toString()
+    complaintData.provider = provider;
+  }
+
+  const complaint = await complaintRepo.createComplaint(complaintData);
+
+  if (provider) {
+    // Notify provider
+    socketService.emitComplaintCreated(
+      userId.toString(),
+      provider.toString(),
+      complaint
     );
     // Notify user that request was submitted
     socketService.emitToUser(
@@ -293,14 +298,14 @@ export const generateEntryQr = async (
   const complaintUserId = typeof complaint.user === 'object' && complaint.user?._id
     ? complaint.user._id.toString()
     : complaint.user?.toString() || "";
-  
+
   const complaintProviderId = typeof complaint.provider === 'object' && complaint.provider?._id
     ? complaint.provider._id.toString()
     : complaint.provider?.toString() || null;
-  
+
   const isOwner = complaintUserId === userId.toString();
   const isProvider = complaintProviderId === userId.toString();
-  
+
   if (!isOwner && !isProvider) {
     throw new ApiError(403, "Unauthorized: You can only generate QR for your own complaints or complaints assigned to you");
   }
@@ -340,7 +345,7 @@ export const validateEntryQr = async (
   const complaintProviderId = typeof complaint.provider === 'object' && complaint.provider?._id
     ? complaint.provider._id.toString()
     : complaint.provider?.toString() || null;
-  
+
   if (complaintProviderId !== providerId.toString()) {
     throw new ApiError(403, "Unauthorized: You are not assigned to this complaint");
   }

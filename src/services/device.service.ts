@@ -24,7 +24,7 @@ export const create = async (data: any) => {
 };
 
 export const retrieve = async (id: string) => {
-  const dev = await retrieveDeviceById(id);
+  const dev = await retrieveDeviceById(id, true);
   if (!dev) throw new ApiError(404, "Device not found");
 
   return new ApiSuccess(200, "Device retrieved", { device: dev });
@@ -32,7 +32,7 @@ export const retrieve = async (id: string) => {
 
 export const retrieveAll = async () => {
   console.log("Retrieving all devices");
-  const list = await retrieveAllDevices();
+  const list = await retrieveAllDevices(true);
   console.log(`Found ${list.length} devices`);
   return new ApiSuccess(200, "Devices retrieved", { devices: list });
 };
@@ -41,7 +41,7 @@ export const update = async (id: string, data: any) => {
   const dev = await retrieveDeviceById(id);
   if (!dev) throw new ApiError(404, "Device not found");
 
-  const updated = await updateDeviceById(id, data);
+  const updated = await updateDeviceById(id, data, true);
   return new ApiSuccess(200, "Device updated", { device: updated });
 };
 
@@ -54,11 +54,11 @@ export const softDelete = async (id: string) => {
 };
 
 export const getDevicesByUser = async (userId: string) => {
-  const devices = await retrieveDevicesByUserId(userId);
+  const devices = await retrieveDevicesByUserId(userId, true);
   return devices;
 };
 
 export const retrieveByUser = async (userId: string) => {
-  const devices = await retrieveDevicesByUserId(userId);
+  const devices = await retrieveDevicesByUserId(userId, true);
   return new ApiSuccess(200, "User devices retrieved", { devices });
 };
