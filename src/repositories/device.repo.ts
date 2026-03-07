@@ -49,7 +49,8 @@ export const retrieveDeviceById = async (id: string, populateDeviceType = false)
 };
 
 export const retrieveDevicesByUserId = async (userId: string, populateDeviceType = false) => {
-  const devices = await DeviceModel.find({ user: userId, isDeleted: false });
+  const devices = await DeviceModel.find({ user: userId, isDeleted: false })
+    .populate("address");
 
   if (populateDeviceType && devices.length > 0) {
     return populateDeviceTypeFromStrapi(devices);
@@ -59,8 +60,8 @@ export const retrieveDevicesByUserId = async (userId: string, populateDeviceType
 
 export const retrieveAllDevices = async (populateDeviceType = false) => {
   const devices = await DeviceModel.find({ isDeleted: false })
-    .populate("user");
-  // .populate("address")
+    .populate("user")
+    .populate("address");
   // .sort({ createdAt: -1 });
 
   if (populateDeviceType && devices.length > 0) {
