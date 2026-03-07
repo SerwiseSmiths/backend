@@ -135,7 +135,7 @@ export async function updateProfileImage(
  */
 export async function updateSelfInfo(
   _id: mongodbId,
-  data: { firstName?: string; lastName?: string; profileImage?: string | null; email?: string }
+  data: { firstName?: string; lastName?: string; profileImage?: string; email?: string }
 ): Promise<ApiSuccessType<userApiData>> {
   const updatedUser = await userRepo.updateUserById(_id, data);
 
