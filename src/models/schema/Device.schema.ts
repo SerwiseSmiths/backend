@@ -25,6 +25,11 @@ const DeviceSchema = new Schema<IDevice>(
     },
 
     isDeleted: { type: Boolean, default: false },
+    lastServicedAt: { type: Date, default: null },
+    serviceHistory: {
+      type: [{ complaintId: String, servicedAt: Date }],
+      default: [],
+    },
   },
   { timestamps: true }
 );

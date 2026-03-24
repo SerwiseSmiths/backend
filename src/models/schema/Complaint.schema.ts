@@ -9,6 +9,16 @@ const mediaSchema = new Schema(
   { _id: false }
 );
 
+const paymentRecordSchema = new Schema(
+  {
+    method: { type: String, enum: ["wallet", "online", "cash"], required: true },
+    amount: { type: Number, required: true },
+    referenceId: { type: String, required: true },
+    date: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const complaintSchema = new Schema<IComplaint>(
   {
     title: { type: String, required: true },
@@ -54,9 +64,10 @@ const complaintSchema = new Schema<IComplaint>(
 
     subscriptionId: {
       type: Schema.Types.ObjectId,
-      ref: "Subscription",
+      ref: "UserSubscription",
       default: null,
     },
+    serviceIndex: { type: Number, default: null },
 
     // Rejection tracking
     rejectionReason: { type: String, default: null },
@@ -83,20 +94,23 @@ const complaintSchema = new Schema<IComplaint>(
     providerAssignmentExpiry: { type: Date, default: null },
     rejectedProviderIds: { type: [Schema.Types.ObjectId], default: [] },
 
-    payment: {
-      type: Schema.Types.ObjectId,
-      ref: "WalletLedger",
-      default: null,
-    },
+    payments: { type: [paymentRecordSchema], default: [] },
+    totalAmount: { type: Number, default: 0 },
+    remainingAmount: { type: Number, default: 0 },
     // Calculated payment amount (cached to avoid recalculation)
     calculatedPaymentAmount: { type: Number, default: null },
     calculatedPaymentAt: { type: Date, default: null },
+    // Subscription EMI & Provider Payout caching
+    emiApplied: { type: Number, default: null },
+    providerCut: { type: Number, default: null },
     // Cash collection tracking
     cashCollected: { type: Boolean, default: false },
     cashCollectedAt: { type: Date, default: null },
     // Entry QR validation (provider must scan customer's QR to start service)
     entryQrToken: { type: String, default: null },
     entryQrExpiresAt: { type: Date, default: null },
+
+    paymentRef: { type: String, default: null }, // Frontend generated ID to link Razorpay Webhooks
   },
   { timestamps: true }
 );
@@ -106,5 +120,6 @@ complaintSchema.index({ user: 1, createdAt: -1 });
 complaintSchema.index({ provider: 1, createdAt: -1 });
 complaintSchema.index({ stage: 1 });
 complaintSchema.index({ parentId: 1 });
+complaintSchema.index({ paymentRef: 1 });
 
 export const ComplaintModel = model<IComplaint>("Complaint", complaintSchema);

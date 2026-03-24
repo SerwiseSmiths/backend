@@ -1,0 +1,114 @@
+[
+  {
+    "id": "fa36t0cqspb6pvmub0tcnwwe",
+    "name": "Spun Filter"
+  },
+  {
+    "id": "drrf3lklql4vgflcaqek7tcp",
+    "name": "Pre Filter Bowl"
+  },
+  {
+    "id": "tc3v1qqfghpmqwgwa8mspq4c",
+    "name": "Sediment Filter"
+  },
+  {
+    "id": "tu49xm1f9blvlo0x5av32ucn",
+    "name": "Pre Carbon Filter"
+  },
+  {
+    "id": "snmbzebvb5c27dpfgiszyu3i",
+    "name": "Post Carbon Filter"
+  },
+  {
+    "id": "d2d2eppbhavswlhx88dexm4b",
+    "name": "Inline Filter Set"
+  },
+  {
+    "id": "qkuojb5q8dqvdg0lj6c38824",
+    "name": "UF Big Filter"
+  },
+  {
+    "id": "k4a4jq5y9mv9569hzh4bmwz1",
+    "name": "UF Small Filter"
+  },
+  {
+    "id": "mbk2s3dktj36pl1asquslkfr",
+    "name": "RO Membrane"
+  },
+  {
+    "id": "pug9rgctqv2iiq5jqjuv8wc6",
+    "name": "Alkaline Filter"
+  },
+  {
+    "id": "klr3yvxwefibc2o5u1o9i4rz",
+    "name": "Copper Filter"
+  },
+  {
+    "id": "cvttw4995ehfsrwwa877evv7",
+    "name": "Magnesium Filter"
+  },
+  {
+    "id": "v5ukq2henbrwy6j40lva8wtp",
+    "name": "Zinc Filter"
+  },
+  {
+    "id": "e8tud6mhtinvjulhmxms2s1u",
+    "name": "Calcium Filter"
+  },
+  {
+    "id": "siz7r614sitluwybka4nz4in",
+    "name": "Booster Pump"
+  },
+  {
+    "id": "enc3l4piwp6lcahj6o0hwn1t",
+    "name": "UV Lamp"
+  },
+  {
+    "id": "u5r1s61doizk9meyrew3aqw8",
+    "name": "TDS Controller"
+  },
+  {
+    "id": "xtakdx0v8st8tgpts8q5b4wj",
+    "name": "Power Supply Unit (SMPS)"
+  },
+  {
+    "id": "qm2n5ygwcuhrg3k36jd7jk4b",
+    "name": "Float Switch"
+  },
+  {
+    "id": "bws2wuatv6ajybyyd277g9os",
+    "name": "Solenoid Valve (SV)"
+  },
+  {
+    "id": "ekjj7o7muczurgrfu0tz0z1d",
+    "name": "Pump Head"
+  },
+  {
+    "id": "sq3la0nftnksvxtu9o58b8yf",
+    "name": "Electrical Wire Changes"
+  },
+  {
+    "id": "nr4jjh5mqjt6jrsd2tntsn8f",
+    "name": "Booster Pump Repair"
+  },
+  {
+    "id": "y8b0sjqzt35kpkervl5zbiws",
+    "name": "Pump Head Repair"
+  },
+  {
+    "id": "w1fasxa5xcqn1c5rap98ufq1",
+    "name": "Electrical Wire Repair"
+  },
+  {
+    "id": "o7pyx29fva3qfda2murm3hz1",
+    "name": "Installation"
+  },
+  {
+    "id": "g3cso1x2msndbh7fibwloqub",
+    "name": "Uninstallation"
+  },
+  {
+    "id": "bh27lwxft173l7a00yirs3wt",
+    "name": "Basic Check-up"
+  }
+]

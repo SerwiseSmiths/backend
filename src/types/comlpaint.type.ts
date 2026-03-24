@@ -10,6 +10,13 @@ export type complaintStages =
   | "COMPLETED"
   | "REJECTED";
 
+export interface IComplaintPayment {
+    method: "wallet" | "online" | "cash";
+    amount: number;
+    referenceId: string;
+    date: Date;
+}
+
 export interface IComplaint extends Document {
   title: string;
   user: mongodbId;
@@ -23,11 +30,16 @@ export interface IComplaint extends Document {
   notes: string;
   media: IMedia[];
   subscriptionId: mongodbId | null;
-  payment: mongodbId | null; // ref to WalletLedger
+  payments: IComplaintPayment[];
+  totalAmount: number;
+  remainingAmount: number;
   calculatedPaymentAmount?: number | null;
   calculatedPaymentAt?: Date | null;
+  emiApplied?: number | null;
+  providerCut?: number | null;
   cashCollected?: boolean;
   cashCollectedAt?: Date | null;
+  serviceIndex?: number | null;
 
   // Rejection tracking
   rejectionReason?: string | null;
@@ -52,6 +64,8 @@ export interface IComplaint extends Document {
   entryQrToken?: string | null;
   entryQrExpiresAt?: Date | null;
 
+  paymentRef?: string | null;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +83,10 @@ export interface ICreateComplaintInput {
   media?: IMedia[];
   parentId?: mongodbId;
   subscriptionId?: mongodbId;
+  userSubscriptionId?: mongodbId;
+  useSubscription?: boolean;
+  paymentMethod?: "online" | "cash" | "wallet" | "wallet_cash" | "wallet_online";
+  paymentRef?: string;
 }
 
 // Input type for updating a complaint
@@ -80,5 +98,7 @@ export interface IUpdateComplaintInput {
   notes?: string;
   media?: IMedia[];
   subscriptionId?: mongodbId;
+  userSubscriptionId?: mongodbId;
+  serviceIndex?: number;
   payment?: mongodbId;
 }

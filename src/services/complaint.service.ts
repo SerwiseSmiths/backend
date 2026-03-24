@@ -10,6 +10,9 @@ import {
   IUpdateComplaintInput,
 } from "../types/comlpaint.type";
 import socketService from "./socket.service";
+import { creditWallet } from "./wallet.services";
+import { WalletLedgerSource } from "../types/wallet.type";
+import { QuoteModel } from "../models/schema/Quote.schema";
 
 export const createComplaint = async (
   data: ICreateComplaintInput,
@@ -30,7 +33,83 @@ export const createComplaint = async (
     complaintData.provider = provider;
   }
 
-  const complaint = await complaintRepo.createComplaint(complaintData);
+  // Handle Subscription
+  if ((data as any).useSubscription && (data as any).userSubscriptionId) {
+    const { validateSubscriptionForComplaint } = await import("./subscription.service");
+    try {
+      const subValidation = await validateSubscriptionForComplaint(
+        userId,
+        (data as any).userSubscriptionId
+      );
+      complaintData.subscriptionId = (data as any).userSubscriptionId;
+      if (subValidation.data) {
+        complaintData.serviceIndex = subValidation.data.nextIndex;
+        console.log("Subscription validated for complaint, service index:", subValidation.data.nextIndex);
+      }
+    } catch (err: any) {
+      throw new ApiError(400, `Subscription validation failed: ${err.message}`);
+    }
+  }
+
+  const { paymentMethod, ...restData } = complaintData as any;
+  const complaint = await complaintRepo.createComplaint(restData);
+
+  // Handle wallet deductions
+  if (paymentMethod === "wallet" || paymentMethod === "wallet_cash" || paymentMethod === "wallet_online") {
+    const { getWallet, debitWallet } = await import("./wallet.services");
+    const { WalletLedgerSource } = await import("../types/wallet.type");
+    
+    try {
+      const walletRes = await getWallet(userId.toString());
+      const balance = walletRes.data?.wallet?.balance || 0;
+      const walletDeduction = Math.min(balance, 200); // 200 is fixed booking price
+      
+      if (walletDeduction > 0) {
+        const debitRes = await debitWallet(
+          userId.toString(),
+          walletDeduction,
+          WalletLedgerSource.ORDER_PAYMENT,
+          complaint._id.toString(),
+          { description: "Wallet deduction for booking" }
+        );
+        
+        const walletLedgerId = debitRes.data?.ledger?._id;
+        if (walletLedgerId) {
+          await complaintRepo.updateComplaint(complaint._id, { 
+              $push: { 
+                  payments: { 
+                      method: "wallet", 
+                      amount: walletDeduction, 
+                      referenceId: walletLedgerId.toString(), 
+                      date: new Date() 
+                  } 
+              } 
+          } as any);
+        }
+      }
+    } catch (err: any) {
+      console.error("Failed to deduct from wallet:", err);
+    }
+  }
+
+  // If online payment, immediately credit ₹15 cashback to the wallet
+  if (paymentMethod === "online" || paymentMethod === "wallet_online") {
+    try {
+      const { creditWallet } = await import("./wallet.services");
+      const { WalletLedgerSource } = await import("../types/wallet.type");
+      await creditWallet(
+        userId.toString(),
+        15,
+        WalletLedgerSource.CASHBACK,
+        complaint._id.toString(),
+        { description: "UPI Cashback on booking" }
+      );
+      console.log(`Credited ₹15 cashback to user ${userId} for complaint ${complaint._id}`);
+    } catch (err: any) {
+      console.error("Failed to credit cashback to wallet:", err);
+      // We don't want to abort complaint creation if wallet credit fails
+    }
+  }
 
   if (provider) {
     // Notify provider
@@ -140,12 +219,49 @@ export const addQuote = async (id: mongodbId, quoteId: mongodbId) => {
 
   const oldStage = complaint.stage;
 
-  // Update complaint with quote and move to APPROVAL stage
+  // Fetch quote to check total amount for bypass logic
+  const quote = await QuoteModel.findById(quoteId);
+  if (!quote) throw new ApiError(404, "Quote not found");
+
+  // If total is 0, bypass approval and payment, mark as COMPLETED
+  const nextStage = quote.total === 0 ? "COMPLETED" : "APPROVAL";
+
+  // Update complaint with quote and move to next stage
   const updated = await complaintRepo.updateComplaint(id, {
     quote: quoteId,
-    stage: "APPROVAL" // Move to approval after estimation is submitted
+    stage: nextStage
   });
   if (!updated) throw new ApiError(404, "Complaint not found");
+
+  // If completed and has subscription, record usage
+  if (nextStage === "COMPLETED" && updated.subscriptionId && updated.serviceIndex) {
+    const { recordUsage } = await import("./subscription.service");
+    try {
+      await recordUsage(updated.subscriptionId, updated._id, updated.serviceIndex);
+      console.log(`Recorded usage for subscription ${updated.subscriptionId}, service index ${updated.serviceIndex}`);
+    } catch (err) {
+      console.error("Failed to record subscription usage:", err);
+    }
+  }
+
+  // If completed and has a device linked, update device history
+  if (nextStage === "COMPLETED" && updated.deviceId) {
+    try {
+      const DeviceModel = (await import("../models/schema/Device.schema")).default;
+      await DeviceModel.findByIdAndUpdate(updated.deviceId, {
+        lastServicedAt: new Date(),
+        $push: {
+          serviceHistory: {
+            complaintId: updated._id.toString(),
+            servicedAt: new Date(),
+          },
+        },
+      });
+      console.log(`Updated device history for device ${updated.deviceId}`);
+    } catch (err) {
+      console.error("Failed to update device history:", err);
+    }
+  }
 
   console.log(updated);
 
@@ -161,11 +277,15 @@ export const addQuote = async (id: mongodbId, quoteId: mongodbId) => {
   socketService.emitQuoteAdded(userId, updated);
 
   // Emit stage change event if stage was updated
-  if (oldStage !== "APPROVAL") {
-    socketService.emitStageChanged(userId, providerId, updated, oldStage, "APPROVAL");
+  if (oldStage !== nextStage) {
+    socketService.emitStageChanged(userId, providerId, updated, oldStage, nextStage);
   }
 
-  return new ApiSuccess(200, "Quote added and moved to approval", { complaint: updated });
+  const responseMessage = nextStage === "COMPLETED" 
+    ? "Quote added and complaint completed (Zero amount)" 
+    : "Quote added and moved to approval";
+
+  return new ApiSuccess(200, responseMessage, { complaint: updated });
 };
 
 export const addDevice = async (id: mongodbId, deviceId: mongodbId) => {
@@ -192,7 +312,16 @@ export const addPayment = async (id: mongodbId, paymentId: mongodbId) => {
   const complaint = await complaintRepo.findComplaintById(id);
   if (!complaint) throw new ApiError(404, "Complaint not found");
 
-  const updated = await complaintRepo.updateComplaint(id, { payment: paymentId });
+  const updated = await complaintRepo.updateComplaint(id, { 
+    $push: {
+      payments: {
+        method: "online", // fallback since old addPayment doesn't specify
+        amount: 0,
+        referenceId: paymentId.toString(),
+        date: new Date()
+      }
+    }
+  } as any);
   if (!updated) throw new ApiError(404, "Complaint not found");
 
   // Emit payment done event - extract IDs from potentially populated fields
@@ -386,4 +515,58 @@ export const validateEntryQr = async (
   return new ApiSuccess(200, "QR code validated successfully", {
     complaint: updated,
   });
+};
+
+// Request entrance QR scan (provider requests customer to scan)
+export const requestEntranceScan = async (
+  complaintId: mongodbId,
+  providerId: mongodbId
+) => {
+  const complaint = await complaintRepo.findComplaintById(complaintId);
+  if (!complaint) throw new ApiError(404, "Complaint not found");
+
+  const complaintProviderId = typeof complaint.provider === 'object' && complaint.provider?._id
+    ? complaint.provider._id.toString()
+    : complaint.provider?.toString() || null;
+
+  if (complaintProviderId !== providerId.toString()) {
+    throw new ApiError(403, "Unauthorized: Only the assigned provider can request a scan");
+  }
+
+  const userId = typeof complaint.user === 'object' && complaint.user?._id
+    ? complaint.user._id.toString()
+    : complaint.user?.toString();
+
+  if (!userId) {
+    throw new ApiError(404, "Complaint has no associated user");
+  }
+
+  // Generate new QR code if in ENTRANCE stage
+  let activeToken = complaint.entryQrToken;
+  
+  if (complaint.stage === "ENTRANCE") {
+    const { v4: uuidv4 } = require('uuid');
+    activeToken = uuidv4();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+    
+    await complaintRepo.updateComplaint(complaintId, {
+      entryQrToken: activeToken as string,
+      entryQrExpiresAt: expiresAt,
+    });
+  }
+
+  socketService.emitToUser(
+    userId,
+    "complaint:entrance_scan_requested",
+    { 
+      complaintId: complaintId.toString(), 
+      entryQrToken: activeToken,
+      provider: complaint.provider 
+    },
+    "Entrance Access Requested",
+    "Provider is at your location! Please tap here to display your Entrance QR Code."
+  );
+
+  return new ApiSuccess(200, "Scan requested successfully", null);
 };

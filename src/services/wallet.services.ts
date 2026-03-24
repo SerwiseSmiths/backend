@@ -119,7 +119,7 @@ export const debitWallet = async (
         }
 
         // Create Ledger Entry for sender (debit)
-        await walletRepo.createLedgerEntry(
+        const ledgerEntry = await walletRepo.createLedgerEntry(
             {
                 wallet: updatedWallet._id.toString(),
                 user: userId,
@@ -188,6 +188,7 @@ export const debitWallet = async (
 
         return new ApiSuccess(200, "Wallet debited successfully", {
             wallet: updatedWallet,
+            ledger: ledgerEntry,
         });
     } catch (error) {
         await session.abortTransaction();

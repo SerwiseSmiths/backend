@@ -275,8 +275,10 @@ class SocketService {
         const socketId = this.userSocketMap.get(userId);
         if (socketId) {
             this.io?.to(socketId).emit(event, data);
-        } else if (notificationTitle && notificationBody) {
-            // Send push notification for offline user
+        }
+
+        // Always send push notification regardless of socket presence
+        if (notificationTitle && notificationBody) {
             notificationService.sendNotification({
                 userId,
                 target: "USER",
@@ -284,11 +286,12 @@ class SocketService {
                 body: notificationBody,
                 type: "Service",
                 metadata: { event, ...data },
+            }).catch(err => {
+                console.error("Failed to send push notification to user", userId, err);
             });
         }
     }
 
-    // Emit to provider with queue for offline
     public emitToProvider(
         providerId: string,
         event: string,
@@ -296,33 +299,37 @@ class SocketService {
         shouldQueue: boolean = true
     ): void {
         const socketId = this.userSocketMap.get(providerId);
+        
+        // 1. Send via Socket if online
         if (socketId) {
             this.io?.to(socketId).emit(event, data);
         } else if (shouldQueue) {
+            // 2. Queue for when they come online (only if offline and queuing enabled)
             this.queueEventForProvider(providerId, event, data);
-
-            // Build FCM data payload — all values must be strings
-            const fcmData: Record<string, string> = { event };
-            try {
-                // Serialize complaint so the app can open popup directly from tap
-                if (data?.complaint) {
-                    fcmData.complaint = JSON.stringify(data.complaint);
-                    fcmData.complaintId = data.complaint._id?.toString() ?? '';
-                }
-            } catch (_) {
-                // If serialization fails, still send basic notification
-            }
-
-            // Send push notification
-            notificationService.sendNotification({
-                userId: providerId,
-                target: "USER",
-                title: "New Job Available",
-                body: data?.complaint?.title ?? "You have a new service request",
-                type: "Service",
-                metadata: fcmData,
-            });
         }
+
+        // 3. ALWAYS send push notification regardless of socket status
+        // Build FCM data payload — all values must be strings
+        const fcmData: Record<string, string> = { event };
+        try {
+            // Serialize complaint so the app can open popup directly from tap
+            if (data?.complaint) {
+                fcmData.complaint = JSON.stringify(data.complaint);
+                fcmData.complaintId = data.complaint._id?.toString() ?? '';
+            }
+        } catch (_) {
+            // If serialization fails, still send basic notification
+        }
+
+        // Send push notification
+        notificationService.sendNotification({
+            userId: providerId,
+            target: "USER",
+            title: "New Job Available",
+            body: data?.complaint?.title ?? "You have a new service request",
+            type: "Service",
+            metadata: fcmData,
+        });
     }
 
     // ==================== COMPLAINT EVENTS ====================

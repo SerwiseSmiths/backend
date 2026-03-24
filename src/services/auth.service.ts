@@ -72,6 +72,9 @@ export const login = async (_phoneNo: string, _userType?: string, appContext?: s
     console.log(`New user created with ID: ${user._id}`);
   } else {
     console.log(`Existing user found: ${user._id}`);
+    if (isRadixContext && user.userType !== "provider") {
+      throw new ApiError(403, "Only providers can log in to Radix");
+    }
   }
 
   const tokens = await user.generateAuthTokens();
@@ -162,7 +165,7 @@ export const verifyOtp = async (
   return loginResult;
 };
 
-export const logout = async () => {};
+export const logout = async () => { };
 
 export const truecallerAuth = async (params: {
   payload: string;
@@ -186,8 +189,7 @@ export const truecallerAuth = async (params: {
   const normalizedPhone = normalizeDbPhone(rawPhone);
 
   console.log(
-    `Truecaller auth for phone: ${normalizedPhone}, name: ${profile.firstName || ""} ${
-      profile.lastName || ""
+    `Truecaller auth for phone: ${normalizedPhone}, name: ${profile.firstName || ""} ${profile.lastName || ""
     }`
   );
 

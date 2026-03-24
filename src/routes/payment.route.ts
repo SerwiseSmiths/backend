@@ -14,4 +14,7 @@ router.get("/qr/:complaintId", auth, paymentVerificationController.getPaymentQRC
 router.post("/calculate/:complaintId", auth, paymentVerificationController.calculatePayment);
 router.post("/cash-collect/:complaintId", auth, paymentVerificationController.collectCashPayment);
 
+// Razorpay Webhook
+router.post("/razorpay/webhook", paymentVerificationController.razorpayWebhook);
+
 export default router;

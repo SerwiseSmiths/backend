@@ -2,14 +2,16 @@
 
 export interface IStrapiDeviceType {
     id: number;
+    documentId: string;
     name: string;
-    status: "active" | "inactive";
+    state: "active" | "inactive" | "ACTIVE" | "INACTIVE";
     icon: string;
 }
 
 export interface IStrapiResponse<T> {
-    data: T[];
-    meta: {
+    data?: T[];
+    results?: T[];
+    meta?: {
         pagination?: {
             page: number;
             pageSize: number;
@@ -20,8 +22,10 @@ export interface IStrapiResponse<T> {
 }
 
 export interface IStrapiSingleResponse<T> {
-    data: T;
-    meta: {};
+    data?: T;
+    meta?: {};
+    id?: number;
+    documentId?: string;
 }
 
 export interface IStrapiConfig {

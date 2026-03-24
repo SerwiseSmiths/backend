@@ -5,8 +5,10 @@ export interface IDevice extends Document {
   deviceType: string;  // Strapi CMS ID
   description?: string;
   user: Schema.Types.ObjectId;
-  address: Schema.Types.ObjectId;   // <-- updated
+  address: Schema.Types.ObjectId;
   isDeleted: boolean;
+  lastServicedAt?: Date;
+  serviceHistory?: { complaintId: string; servicedAt: Date }[];
   createdAt: Date;
   updatedAt: Date;
 }
