@@ -20,7 +20,7 @@ export const getStrapiHeaders = (): HeadersInit => ({
 export const getStrapiUrl = (endpoint: string): string => {
     const baseUrl = strapiConfig.apiUrl.replace(/\/$/, "");
     const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-    return `${baseUrl}/api${path}`;
+    return `${baseUrl}${path}`;
 };
 
 export default strapiConfig;

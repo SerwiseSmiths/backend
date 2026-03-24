@@ -32,5 +32,6 @@ router.patch("/:id/reject-assignment", auth, complaintController.rejectComplaint
 // QR Entry validation
 router.post("/:id/qr/generate", auth, complaintController.generateEntryQr);
 router.post("/:id/qr/validate", auth, complaintController.validateEntryQr);
+router.post("/:id/qr/request-scan", auth, complaintController.requestEntranceScan);
 
 export default router;

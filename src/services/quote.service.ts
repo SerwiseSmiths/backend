@@ -1,5 +1,7 @@
 import * as quoteRepo from "../repositories/quote.repo";
 import { ServiceModel } from "../models/schema/Service.schema";
+import { ComplaintModel } from "../models/schema/Complaint.schema";
+import * as complaintService from "./complaint.service";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 import ApiError from "../utils/api/ApiError.api.util";
 import { quoteValidationSchema } from "../models/validation/quote.validation";
@@ -40,19 +42,41 @@ export async function updateQuote(id: string, data: Partial<IQuote>) {
   let updateData = data;
 
   if (data.items) {
-    const services = await ServiceModel.find({ _id: { $in: data.items } });
-
-    if (services.length !== data.items.length) {
-      throw new ApiError(404, "One or more service IDs are invalid");
+    if (data.total === undefined) {
+      throw new ApiError(400, "Total must be provided when updating items");
     }
-
-    updateData.total = services.reduce((sum, s) => sum + s.price, 0);
   }
 
   const quote = await quoteRepo.updateQuoteById(id, updateData);
   if (!quote) throw new ApiError(404, "Invalid quote id");
 
   return new ApiSuccess(200, "Quote updated successfully", { quote });
+}
+
+export async function updateQuoteStatus(id: string, status: "PENDING" | "APPROVED" | "REJECTED", reason?: string) {
+  const quote = await quoteRepo.updateQuoteById(id, { status } as any);
+  if (!quote) throw new ApiError(404, "Invalid quote id");
+
+  // Sync with the associated complaint
+  const complaint = await ComplaintModel.findOne({ quote: id });
+  if (complaint) {
+    if (status === "APPROVED") {
+      const paymentCalcService = (await import("./paymentCalculation.service")).default;
+      const totalPayment = await paymentCalcService.calculatePaymentAmount(complaint._id.toString());
+      
+      if (totalPayment === 0) {
+        // Zero payment flow -> direct to completion!
+        await complaintService.updateStage(complaint._id as any, "COMPLETED");
+        await paymentCalcService.processPaymentCompletion(complaint._id.toString());
+      } else {
+        await complaintService.updateStage(complaint._id as any, "PAYMENT");
+      }
+    } else if (status === "REJECTED") {
+      await complaintService.updateStage(complaint._id as any, "REJECTED", reason);
+    }
+  }
+
+  return new ApiSuccess(200, "Quote status updated successfully", { quote, complaintId: complaint?._id });
 }
 
 export async function deleteQuote(id: string) {

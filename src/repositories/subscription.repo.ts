@@ -1,12 +1,10 @@
-import { SubscriptionModel } from "../models/schema/subscription.schema";
-import { ISubscription } from "../models/schema/subscription.schema";
-// import { mongodbId } from "../types/common";
+import { UserSubscriptionModel, IUserSubscription } from "../models/schema/UserSubscription.schema";
 
 /** Create Subscription */
 export const createSubscription = async (
-  data: Partial<ISubscription>
-): Promise<ISubscription | null> => {
-  const newSub = new SubscriptionModel(data);
+  data: Partial<IUserSubscription>
+): Promise<IUserSubscription | null> => {
+  const newSub = new UserSubscriptionModel(data);
   await newSub.save();
   return newSub;
 };
@@ -14,21 +12,21 @@ export const createSubscription = async (
 /** Retrieve by ID */
 export const retrieveSubscriptionById = async (
   _id: mongodbId
-): Promise<ISubscription | null> => {
-  return await SubscriptionModel.findById(_id).populate("user");
+): Promise<IUserSubscription | null> => {
+  return await UserSubscriptionModel.findById(_id).populate("user");
 };
 
 /** Retrieve all */
-export const retrieveAllSubscriptions = async (): Promise<ISubscription[]> => {
-  return await SubscriptionModel.find().populate("user");
+export const retrieveAllSubscriptions = async (): Promise<IUserSubscription[]> => {
+  return await UserSubscriptionModel.find().populate("user");
 };
 
 /** Update partial fields */
 export const updateSubscription = async (
   _id: mongodbId,
-  update: Partial<ISubscription>
-): Promise<ISubscription | null> => {
-  return await SubscriptionModel.findByIdAndUpdate(_id, update, {
+  update: Partial<IUserSubscription>
+): Promise<IUserSubscription | null> => {
+  return await UserSubscriptionModel.findByIdAndUpdate(_id, update, {
     new: true,
   });
 };

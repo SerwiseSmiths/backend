@@ -1,37 +1,24 @@
 import * as express from "express";
 import * as controller from "../controllers/notification.controller";
 import { auth } from "../middlewares/auth.middleware";
+import { authOptional } from "../middlewares/authOptional.middleware";
 import { authorize } from "../middlewares/authorize.middleware";
 
 
 const router = express.Router();
 
-// Public/Auth optional for token registration (e.g. login screen)
-// But controller logic checks for user. If we want it to work without user, we can remove auth or make it optional.
-// User asked: "if user there then token should be linked".
-// So we can use a middleware that populates user if token is present, but doesn't block if not.
-// For now, I'll use `authenticate` if it supports optional, or just no middleware for register and handle it in controller.
-// However, `req.user` usually comes from `authenticate`. 
 
-// Let's assume `authenticate` is strict. If so, we need a separate "optional auth" or just let the client send the token after login.
-// Usually device registration happens on app launch (no user) AND after login (user linked).
-// I will rely on the controller handling `req.user` presence. I'll use a custom middleware or just `authenticate` if the user is expected to be logged in for "linking".
-// If the user is NOT logged in, they can still register the device, but `req.user` will be undefined.
-// I'll skip strict auth for the register endpoint and let the controller check header manually or use a "soft auth" middleware if available.
-// Given I don't see "soft auth", I'll just leave it open and assume `req.user` is populated by a global middleware or I'll add `authenticate` for the "link to user" case. 
-// Safest: Use `authenticate` for `getMyNotifications`. For `register`, maybe make it open but try to extract token.
 
-// Actually, looking at `user.route.ts` will confirm usage.
-
-// Routes
-router.post("/device/register", auth,controller.registerDevice); // Open endpoint, controller checks for user
+// authOptional: populates req.user if token is present, but does NOT block if no token.
+// This allows device registration to work at login AND on app reopen without re-auth.
+router.post("/device/register", authOptional, controller.registerDevice);
 router.get("/my-notifications", auth, controller.getMyNotifications);
 router.patch("/:id/read", auth, controller.markAsRead);
 
 // Test Route - No auth required
-router.post("/test-provider", controller.testProviderNotification);
+router.get("/test/provider", controller.testProviderNotification);
 
 // Admin Routes
-router.post("/send", auth, authorize(["manager"]), controller.sendNotification);
+router.post("/send", controller.sendNotification);
 
 export default router;

@@ -1,21 +1,21 @@
 import * as express from "express";
 const router: express.Router = express.Router();
-
 import * as subController from "../controllers/subscription.contoller";
+import { auth } from "../middlewares/auth.middleware";
 
-// Create subscription
-router.post("/", subController.createSubscription);
+// Purchase subscription
+router.post("/purchase", auth, subController.purchaseSubscription);
 
-// Get All
-router.get("/", subController.getAllSubscriptions);
+// Get My Subscriptions
+router.get("/my", auth, subController.getMySubscriptions);
 
-// Get By ID
-router.get("/:id", subController.getSubscriptionById);
+// Validate Subscription (for usage check)
+router.get("/validate/:userSubscriptionId", auth, subController.validateSubscription);
 
-// Change State
-router.patch("/:id/state", subController.updateState);
+// Get Specific Subscription
+router.get("/charge/:userSubscriptionId", auth, subController.getComplaintCharge);
 
-// Update Payment Remaining
-router.patch("/:id/payment", subController.updatePaymentRemaining);
+// Get Specific Subscription
+router.get("/:id", auth, subController.getSubscriptionById);
 
 export default router;

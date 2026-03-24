@@ -3,7 +3,7 @@ import { ComplaintModel } from "../models/schema/Complaint.schema";
 import { IComplaint } from "../types/comlpaint.type";
 
 const populateFields =
-  "user provider addressId deviceId quote parentId subscriptionId payment";
+  "user provider addressId deviceId quote parentId subscriptionId";
 
 export const createComplaint = async (data: Partial<IComplaint>) => {
   const complaint = new ComplaintModel(data);

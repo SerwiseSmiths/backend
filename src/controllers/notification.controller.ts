@@ -53,14 +53,25 @@ export const registerDevice = async (req: Request, res: Response, next: NextFunc
 // Send Notification (Admin)
 export const sendNotification = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { title, body, type, target, userId, metadata } = req.body;
+        const { title, body, type, target, userId, phoneNo, metadata } = req.body;
+
+        // Resolve userId from phoneNo if not directly provided
+        let resolvedUserId = userId;
+        if (!resolvedUserId && phoneNo) {
+            const user = await userRepo.retriveUserByPhoneNo(phoneNo);
+            if (!user) {
+                throw new ApiError(404, `No user found with phone number: ${phoneNo}`);
+            }
+            resolvedUserId = user._id.toString();
+            console.log(`[Notification] Resolved userId ${resolvedUserId} from phoneNo ${phoneNo}`);
+        }
 
         const notification = await notificationService.sendNotification({
             title,
             body,
             type,
             target,
-            userId,
+            userId: resolvedUserId,
             metadata
         });
 

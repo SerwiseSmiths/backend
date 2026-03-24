@@ -5,6 +5,9 @@ import socketService from "../services/socket.service";
 import paymentCalculationService from "../services/paymentCalculation.service";
 import ApiError from "../utils/api/ApiError.api.util";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
+import * as crypto from "crypto";
+import { WalletLedgerSource } from "../types/wallet.type";
+import { creditWallet } from "../services/wallet.services";
 
 /**
  * Customer triggers payment verification request
@@ -110,6 +113,9 @@ export const verifyPayment = async (req: Request, res: Response) => {
         complaint.stage = "COMPLETED";
         complaint.paymentVerificationToken = null;
         await complaint.save();
+
+        // Process EMI & Provider Cut
+        await paymentCalculationService.processPaymentCompletion(complaint._id.toString());
 
         // Emit completion events
         const userId = typeof complaint.user === 'object' && (complaint.user as any)?._id
@@ -259,24 +265,19 @@ export const getPaymentQRCode = async (req: Request, res: Response) => {
             );
         }
 
-        // Get UPI ID from environment or use default
-        const upiId = process.env.UPI_ID || "servicesmith@upi";
-        const payeeName = process.env.UPI_PAYEE_NAME || "ServiceSmith";
+        // Get default UPI details for backward compatibility
+        const upiId = process.env.UPI_ID || "9824157811@upi";
+        const payeeName = process.env.UPI_PAYEE_NAME || "Serwise";
         const transactionNote = `Payment for Complaint #${complaintId.slice(-6)}`;
 
-        // Generate UPI deep link
-        const transactionRef = `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`;
-        const upiLink = `upi://pay?` +
-            `pa=${encodeURIComponent(upiId)}&` +
-            `pn=${encodeURIComponent(payeeName)}&` +
-            `tn=${encodeURIComponent(transactionNote)}&` +
-            `tr=${encodeURIComponent(transactionRef)}&` +
-            `am=${remainingAmount.toFixed(2)}&` +
-            `cu=INR`;
+        // Generate Razorpay link for QR code
+        const paymentRef = `PAY-C-${complaintId}`;
+        const razorpayLink = `https://razorpay.me/@radixtechnologies?amount=${remainingAmount.toFixed(2)}&notes=${encodeURIComponent(paymentRef)}`;
+        const upiLink = razorpayLink; // Swap UPI variable to Razorpay link to leverage existing frontend params
 
-        // Generate QR code data (UPI link as QR code content)
+        // Generate QR code data
         // Frontend will generate the actual QR code image from this data
-        const qrCodeData = upiLink;
+        const qrCodeData = razorpayLink;
 
         const result = new ApiSuccess(200, "Payment QR code generated", {
             complaintId: complaint._id.toString(),
@@ -386,7 +387,20 @@ export const collectCashPayment = async (req: Request, res: Response) => {
         complaint.cashCollected = true;
         complaint.cashCollectedAt = new Date();
         complaint.stage = "COMPLETED";
+        
+        // Track the cash payment
+        (complaint as any).payments.push({
+            method: "cash",
+            amount: remainingAmount,
+            referenceId: `CASH-${Date.now()}`,
+            date: new Date()
+        });
+        (complaint as any).remainingAmount = 0;
+        
         await complaint.save();
+
+        // Process EMI & Provider Cut
+        await paymentCalculationService.processPaymentCompletion(complaint._id.toString());
 
         // Emit completion events
         const userId = typeof complaint.user === 'object' && (complaint.user as any)?._id
@@ -411,5 +425,128 @@ export const collectCashPayment = async (req: Request, res: Response) => {
         console.error("Collect cash payment error:", error);
         const err = error instanceof ApiError ? error : new ApiError(500, error.message);
         res.status(err.statusCode).json(err);
+    }
+};
+
+/**
+ * Handle Razorpay Webhooks (Server-to-Server)
+ * POST /api/v2/payment/razorpay/webhook
+ */
+export const razorpayWebhook = async (req: Request, res: Response) => {
+    try {
+        const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+        // Skip validation if secret is not set (e.g. local dev), but log a warning
+        if (webhookSecret) {
+            const signature = req.headers["x-razorpay-signature"] as string;
+            
+            // Re-create the raw body exactly as received for HMAC verification. 
+            // In express, req.body is already parsed if body-parser is used.
+            const payload = JSON.stringify(req.body);
+
+            const expectedSignature = crypto
+                .createHmac("sha256", webhookSecret)
+                .update(payload)
+                .digest("hex");
+
+            if (expectedSignature !== signature) {
+                console.error("Razorpay Webhook verification failed. Signature mismatch.");
+                return res.status(400).send("Invalid signature");
+            }
+        } else {
+            console.warn("RAZORPAY_WEBHOOK_SECRET is not set. Skipping signature verification (danger!).");
+        }
+
+        const { event, payload } = req.body;
+
+        if (event === "payment.captured" || event === "payment_link.paid" || event === "order.paid") {
+            // Locate the paymentRef from the notes (which the app pre-fills in the comment box)
+            // Razorpay puts this under payload.payment.entity.notes.comment or similar
+            const paymentEntity = payload?.payment?.entity || payload?.payment_link?.entity || payload?.order?.entity;
+            const notes = paymentEntity?.notes || {};
+            
+            // The RazorpayWebViewModal injects `paymentRef` into the "comment" input fields.
+            const paymentRef = notes.comment || notes.notes || "";
+
+            const amountRupees = (paymentEntity?.amount || 0) / 100; // Razorpay amounts are in paise
+
+            console.log(`Webhook received for paymentRef: ${paymentRef}, amount: ${amountRupees}`);
+
+            if (paymentRef.startsWith("PAY-W-")) {
+                // Wallet Recharge Flow
+                const parts = paymentRef.split("-");
+                if (parts.length >= 3) {
+                    const userId = parts[2]; // PAY-W-<userId>-<timestamp>
+                    console.log(`Processing Wallet Recharge for user: ${userId}, amount: ${amountRupees}`);
+
+                    await creditWallet(
+                        userId,
+                        amountRupees,
+                        WalletLedgerSource.RECHARGE,
+                        paymentEntity?.id || paymentRef,
+                        { description: "Wallet Recharge via Razorpay", paymentId: paymentEntity?.id }
+                    );
+
+                    // Notify user via sockets
+                    socketService.emitToUser(
+                        userId,
+                        "wallet:recharge_success",
+                        { balanceAdded: amountRupees, paymentId: paymentEntity?.id },
+                        "Wallet Recharged",
+                        `₹${amountRupees} added to your wallet successfully.`
+                    );
+                }
+            } else if (paymentRef.startsWith("PAY-C-") || paymentRef.startsWith("PAY-")) {
+                // Complaint Booking Payment Flow
+                const complaint = await ComplaintModel.findOne({ paymentRef });
+                
+                if (complaint) {
+                    if (complaint.stage !== "COMPLETED") {
+                        console.log(`Processing Complaint Payment for complaint: ${complaint._id}`);
+                        
+                        complaint.cashCollected = false; // It's online
+                        complaint.stage = "COMPLETED";
+                        complaint.calculatedPaymentAmount = amountRupees;
+                        complaint.calculatedPaymentAt = new Date();
+                        
+                        // Track the online payment
+                        (complaint as any).payments.push({
+                            method: "online",
+                            amount: amountRupees,
+                            referenceId: paymentEntity?.id || paymentRef,
+                            date: new Date()
+                        });
+                        
+                        const totalPaid = (complaint as any).payments.reduce((sum: number, p: any) => sum + p.amount, 0);
+                        (complaint as any).remainingAmount = Math.max(0, ((complaint as any).totalAmount || 0) - totalPaid);
+                        
+                        await complaint.save();
+
+                        // Process EMI & Provider Cut
+                        await paymentCalculationService.processPaymentCompletion(complaint._id.toString());
+
+                        // Emit completion events
+                        const userId = typeof complaint.user === 'object' && (complaint.user as any)?._id
+                            ? (complaint.user as any)._id.toString()
+                            : complaint.user?.toString() || "";
+                        const providerId = typeof complaint.provider === 'object' && (complaint.provider as any)?._id
+                            ? (complaint.provider as any)._id.toString()
+                            : complaint.provider?.toString() || null;
+
+                        socketService.emitStageChanged(userId, providerId, complaint, "PAYMENT", "COMPLETED");
+                    } else {
+                        console.log(`Complaint ${complaint._id} is already marked COMPLETED.`);
+                    }
+                } else {
+                    console.error(`Complaint not found for paymentRef: ${paymentRef}`);
+                }
+            }
+        }
+
+        // Razorpay expects a 200 OK fast
+        res.status(200).send("OK");
+    } catch (error: any) {
+        console.error("Razorpay webhook error:", error);
+        res.status(500).send("Webhook Error");
     }
 };

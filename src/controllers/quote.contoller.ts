@@ -36,6 +36,19 @@ export const updateQuote = async (req:ExpressRequest, res:ExpressResponse, next:
   }
 };
 
+export const updateQuoteStatus = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
+  try {
+    const { status, reason } = req.body;
+    if (!status || !["PENDING", "APPROVED", "REJECTED"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status logic. Allowed values: PENDING, APPROVED, REJECTED" });
+    }
+    const result = await quoteService.updateQuoteStatus(req.params.id, status, reason);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const deleteQuote = async (req:ExpressRequest, res:ExpressResponse, next:ExpressNextFunction) => {
   try {
     const result = await quoteService.deleteQuote(req.params.id);

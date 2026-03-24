@@ -253,3 +253,21 @@ export const validateEntryQr = async (
     next(err);
   }
 };
+
+// Request entrance scan (provider only)
+export const requestEntranceScan = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction
+) => {
+  try {
+    const providerId = req.user.id;
+    const result = await complaintService.requestEntranceScan(
+      req.params.id,
+      providerId
+    );
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
