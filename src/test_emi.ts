@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
-import { ComplaintModel } from 'd:/ServiceSmith/services/backend/src/models/schema/Complaint.schema';
-import { UserSubscriptionModel } from 'd:/ServiceSmith/services/backend/src/models/schema/UserSubscription.schema';
-import paymentCalculationService from 'd:/ServiceSmith/services/backend/src/services/paymentCalculation.service';
-import { ServiceModel } from 'd:/ServiceSmith/services/backend/src/models/schema/Service.schema';
-import { QuoteModel } from 'd:/ServiceSmith/services/backend/src/models/schema/Quote.schema';
+import { ComplaintModel } from './models/schema/Complaint.schema';
+import { UserSubscriptionModel } from './models/schema/UserSubscription.schema';
+import paymentCalculationService from './services/paymentCalculation.service';
+import { ServiceModel } from './models/schema/Service.schema';
+import { QuoteModel } from './models/schema/Quote.schema';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: 'd:/ServiceSmith/services/backend/.env' });
+import * as path from 'path';
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 async function verify() {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/servicesmith');

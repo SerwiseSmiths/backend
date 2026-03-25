@@ -112,7 +112,7 @@ class NotificationRepository {
         return devices.map(d => d.token);
     }
 
-    async removeToken(token: string) {
+    async removeToken(token: string): Promise<any> {
         const existingToken = await DeviceTokenModel.findOne({ token });
         if (existingToken) {
              await this.saveAbandonedDeviceToken(token, existingToken.deviceType);
