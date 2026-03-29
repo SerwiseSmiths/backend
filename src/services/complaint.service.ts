@@ -347,6 +347,11 @@ export const listComplaintsByProvider = async (providerId: mongodbId) => {
   return new ApiSuccess(200, "Provider complaints fetched", { complaints });
 };
 
+export const listOpenComplaintsByProvider = async (providerId: mongodbId) => {
+  const complaints = await complaintRepo.listOpenComplaintsByProvider(providerId);
+  return new ApiSuccess(200, "Provider open complaints fetched", { complaints });
+};
+
 // Provider accepts complaint assignment
 export const acceptComplaintAssignment = async (
   complaintId: mongodbId,

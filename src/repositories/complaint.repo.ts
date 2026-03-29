@@ -46,6 +46,15 @@ export const listComplaintsByProvider = async (providerId: mongodbId) => {
     .sort({ createdAt: -1 });
 };
 
+export const listOpenComplaintsByProvider = async (providerId: mongodbId) => {
+  return await ComplaintModel.find({
+    provider: providerId,
+    stage: { $nin: ["COMPLETED", "REJECTED"] },
+  })
+    .populate(populateFields)
+    .sort({ createdAt: -1 });
+};
+
 export const listComplaintsByStage = async (stage: string) => {
   return await ComplaintModel.find({ stage })
     .populate(populateFields)

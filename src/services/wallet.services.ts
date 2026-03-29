@@ -100,7 +100,7 @@ export const debitWallet = async (
             throw new ApiError(404, "Wallet not found for user");
         }
 
-        if (wallet.balance < amount) {
+        if (wallet.balance < amount && source !== WalletLedgerSource.ORDER_PAYMENT) {
             throw new ApiError(400, "Insufficient wallet balance");
         }
 

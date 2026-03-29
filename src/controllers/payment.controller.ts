@@ -429,6 +429,77 @@ export const collectCashPayment = async (req: Request, res: Response) => {
 };
 
 /**
+ * Bypass payment if remaining amount is zero
+ * POST /api/v2/payment/bypass/:complaintId
+ */
+export const bypassZeroPayment = async (req: Request, res: Response) => {
+    try {
+        const { complaintId } = req.params;
+        const providerId = (req as any).user?._id || (req as any).user?.id;
+
+        if (!providerId) {
+            throw new ApiError(401, "Unauthorized");
+        }
+
+        if (!complaintId) {
+            throw new ApiError(400, "Complaint ID is required");
+        }
+
+        const complaint = await ComplaintModel.findById(complaintId);
+
+        if (!complaint) {
+            throw new ApiError(404, "Complaint not found");
+        }
+
+        // Verify provider is assigned to this complaint
+        const complaintProviderId = typeof complaint.provider === 'object' && (complaint.provider as any)?._id
+            ? (complaint.provider as any)._id.toString()
+            : complaint.provider?.toString() || null;
+
+        if (complaintProviderId !== providerId.toString()) {
+            throw new ApiError(403, "Unauthorized: You are not assigned to this complaint");
+        }
+
+        const remainingAmount = await paymentCalculationService.getRemainingPaymentAmount(complaintId);
+
+        if (remainingAmount > 0) {
+            throw new ApiError(400, "Cannot bypass: Payment is still required (Amount > 0)");
+        }
+
+        // Update complaint
+        complaint.stage = "COMPLETED";
+        
+        await complaint.save();
+
+        // Process EMI & Provider Cut
+        await paymentCalculationService.processPaymentCompletion(complaint._id.toString());
+
+        // Emit completion events
+        const userId = typeof complaint.user === 'object' && (complaint.user as any)?._id
+            ? (complaint.user as any)._id.toString()
+            : complaint.user?.toString() || "";
+
+        socketService.emitStageChanged(
+            userId,
+            providerId.toString(),
+            complaint,
+            "PAYMENT",
+            "COMPLETED"
+        );
+
+        const result = new ApiSuccess(200, "Payment bypassed successfully (Zero amount)", {
+            complaint: complaint,
+        });
+
+        res.status(result.statusCode).json(result);
+    } catch (error: any) {
+        console.error("Bypass zero payment error:", error);
+        const err = error instanceof ApiError ? error : new ApiError(500, error.message);
+        res.status(err.statusCode).json(err);
+    }
+};
+
+/**
  * Handle Razorpay Webhooks (Server-to-Server)
  * POST /api/v2/payment/razorpay/webhook
  */

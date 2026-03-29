@@ -174,6 +174,20 @@ export const listProviderComplaints = async (
   }
 };
 
+export const listOpenProviderComplaints = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction
+) => {
+  try {
+    const providerId = req.user.id;
+    const result = await complaintService.listOpenComplaintsByProvider(providerId);
+    res.status(result.statusCode).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Provider accepts complaint assignment
 export const acceptComplaintAssignment = async (
   req: ExpressRequest,

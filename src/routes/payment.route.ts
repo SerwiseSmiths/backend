@@ -13,6 +13,7 @@ router.get("/reject/:token", paymentVerificationController.rejectPayment);
 router.get("/qr/:complaintId", auth, paymentVerificationController.getPaymentQRCode);
 router.post("/calculate/:complaintId", auth, paymentVerificationController.calculatePayment);
 router.post("/cash-collect/:complaintId", auth, paymentVerificationController.collectCashPayment);
+router.post("/bypass/:complaintId", auth, paymentVerificationController.bypassZeroPayment);
 
 // Razorpay Webhook
 router.post("/razorpay/webhook", paymentVerificationController.razorpayWebhook);

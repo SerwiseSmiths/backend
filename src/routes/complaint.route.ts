@@ -10,6 +10,7 @@ router.post("/", auth, complaintController.createComplaint);
 router.get("/", complaintController.listComplaints);
 router.get("/my", auth, complaintController.listMyComplaints);
 router.get("/provider", auth, complaintController.listProviderComplaints);
+router.get("/provider/open", auth, complaintController.listOpenProviderComplaints);
 router.get("/:id", complaintController.getComplaint);
 router.put("/:id", auth, complaintController.updateComplaint);
 router.delete("/:id", auth, complaintController.deleteComplaint);

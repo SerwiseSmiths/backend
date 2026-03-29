@@ -77,6 +77,8 @@ class PaymentCalculationService {
   }
   
   async calculatePaymentAmount(complaintId: string): Promise<number> {
+    console.log(`[PaymentCalc] calculatePaymentAmount called for complaint: ${complaintId}`);
+
     const complaint = await ComplaintModel.findById(complaintId)
       .populate("quote")
       .populate("subscriptionId");
@@ -89,10 +91,18 @@ class PaymentCalculationService {
       ? complaint.quote
       : await QuoteModel.findById(complaint.quote);
 
-    if (!quote || !quote.items || quote.items.length === 0) return 0;
+    console.log(`[PaymentCalc] Quote:`, { id: (quote as any)?._id, total: (quote as any)?.total, itemCount: (quote as any)?.items?.length });
+
+    if (!quote || !quote.items || quote.items.length === 0) {
+      console.log(`[PaymentCalc] No quote items — returning 0`);
+      return 0;
+    }
 
     const quotePartIds: string[] = quote.items.map(String);
+    console.log(`[PaymentCalc] Part IDs from quote:`, quotePartIds);
+
     const partsMap = await this.fetchPartsFromStrapi(quotePartIds);
+    console.log(`[PaymentCalc] Strapi resolved ${partsMap.size}/${quotePartIds.length} parts`);
 
     let subscriptionIncludedIds = new Set<string>();
     let emiApplied = 0;
@@ -110,7 +120,8 @@ class PaymentCalculationService {
         // Find usage index
         const usageCount = await SubscriptionUsageModel.countDocuments({ subscription: sub._id });
         const nextIndex = usageCount + 1;
-        
+        console.log(`[PaymentCalc] Subscription active, usageCount: ${usageCount}, nextIndex: ${nextIndex}`);
+
         const mapping = sub.plan_snapshot.serviceMapping?.find((m: any) => m.usageIndex === nextIndex);
         if (mapping) {
           // Handle new repeatable component structure (relation to parts)
@@ -120,11 +131,13 @@ class PaymentCalculationService {
               if (partId) subscriptionIncludedIds.add(partId.toString());
             });
           }
+          console.log(`[PaymentCalc] Subscription-included part IDs:`, [...subscriptionIncludedIds]);
 
           // If mapping defines a specific provider cut for this visit, use it as an override
           if (mapping.providerCut !== undefined && mapping.providerCut !== null) {
             totalProviderCut = mapping.providerCut;
             providerCutOverridden = true;
+            console.log(`[PaymentCalc] Provider cut overridden by subscription mapping: ${totalProviderCut}`);
           }
         }
 
@@ -134,6 +147,7 @@ class PaymentCalculationService {
           if (monthsSinceStart > sub.plan_snapshot.lockInPeriod) {
             // After lock-in, first service triggers remaining payment
             emiApplied = sub.remainingAmount;
+            console.log(`[PaymentCalc] Metered EMI applied: ${emiApplied}`);
           }
         }
       }
@@ -141,10 +155,13 @@ class PaymentCalculationService {
 
     for (const partId of quotePartIds) {
       const part = partsMap.get(partId);
-      if (!part) continue;
+      if (!part) {
+        console.warn(`[PaymentCalc] Part not found in Strapi: ${partId}`);
+        continue;
+      }
 
       const isIncludedInSubscription = subscriptionIncludedIds.has(partId);
-      
+
       // Only accumulate part-based provider cuts if not overridden by the subscription mapping
       if (!providerCutOverridden) {
         const providerCut = part.attributes?.provider_cut || (part as any).provider_cut || 0;
@@ -153,14 +170,27 @@ class PaymentCalculationService {
 
       if (!isIncludedInSubscription) {
         const price = part.attributes?.face_value || part.attributes?.price || (part as any).face_value || (part as any).price || 0;
-        totalAmount += parseFloat(price.toString());
+        const parsedPrice = parseFloat(price.toString());
+        console.log(`[PaymentCalc] Part ${partId}: price=${parsedPrice}, providerCutOverridden=${providerCutOverridden}`);
+        totalAmount += parsedPrice;
+      } else {
+        console.log(`[PaymentCalc] Part ${partId} covered by subscription — skipped from total`);
       }
     }
 
     totalAmount += emiApplied;
 
+    // If Strapi part lookups returned nothing but the quote has a stored total,
+    // fall back to quote.total so a non-zero quote is never treated as free.
+    if (totalAmount === 0 && (quote as any).total > 0) {
+      console.warn(`[PaymentCalc] Strapi returned no matching parts but quote.total=${(quote as any).total} — falling back to stored total`);
+      totalAmount = (quote as any).total;
+    }
+
     const totalPaid = (complaint as any).payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
     const remainingAmount = Math.max(0, totalAmount - totalPaid);
+
+    console.log(`[PaymentCalc] Result — totalAmount: ${totalAmount}, totalPaid: ${totalPaid}, remainingAmount: ${remainingAmount}, providerCut: ${totalProviderCut}`);
 
     await ComplaintModel.findByIdAndUpdate(complaintId, {
       totalAmount: totalAmount,
