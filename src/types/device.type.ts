@@ -36,5 +36,6 @@ export interface DeviceDescription {
 
   age: number;
   storageCapacity: number;
+  purchaseDate?: string;
   location: string;
 }

@@ -18,11 +18,9 @@ export async function purchaseSubscription(
     startDate: string; // ISO String
     paymentModel: "flat" | "metered";
     addonIds?: string[]; // Optional Array of Addon Document IDs
-    amountPaid?: number; // Passed from frontend after Razorpay success
-    transactionRef?: string; // Razorpay payment ID
   }
 ): Promise<ApiSuccess<IUserSubscription>> {
-  const { planId, startDate, paymentModel, addonIds = [], amountPaid = 0, transactionRef = "manual" } = body;
+  const { planId, startDate, paymentModel, addonIds = [] } = body;
 
   // 1. Fetch plan from Strapi with full population for component and relations
   const plan = await strapiService.fetchFromStrapi(`/subscriptions/${planId}?populate[serviceMapping][populate][parts]=*`);
@@ -77,55 +75,20 @@ export async function purchaseSubscription(
     },
     startDate: start,
     expiryDate: expiry,
-    status: start <= new Date() ? "active" : "pending",
+    // Status and payment are always "pending" on creation.
+    // The Razorpay webhook activates the subscription once payment is confirmed.
+    status: "pending",
     paymentModel,
-    paymentStatus: amountPaid >= (planAttributes.sub_sales + addonsTotalSales) ? "completed" : (amountPaid > 0 ? "partial" : "pending"),
-    totalPaid: amountPaid,
-    remainingAmount: Math.max(0, (planAttributes.sub_sales + addonsTotalSales) - amountPaid),
+    paymentStatus: "pending",
+    totalPaid: 0,
+    remainingAmount: planAttributes.sub_sales + addonsTotalSales,
     addons_snapshot: addonsSnapshot,
   };
 
   const newSub = await UserSubscriptionModel.create(subData);
 
-  if (amountPaid > 0) {
-    await SubscriptionPaymentModel.create({
-      subscription: newSub._id,
-      user: userId,
-      amount: amountPaid,
-      paymentType: "upfront",
-      transactionRef: transactionRef,
-      status: "completed",
-      paidAt: new Date(),
-    });
-  }
-
-  // 🎁 Subscription cashback — random in [0, maxDiscount] with average = maxDiscount / 4
-  // Uses min(U1, U2, U3) × max which gives E[cashback] = maxDiscount / 4
-  const maxDiscount: number = planAttributes.maxDiscount || 0;
-  if (maxDiscount > 0) {
-    const cashback = Math.round(
-      Math.min(Math.random(), Math.random(), Math.random()) * maxDiscount
-    );
-    if (cashback > 0) {
-      try {
-        const { creditWallet } = await import("./wallet.services");
-        const { WalletLedgerSource } = await import("../types/wallet.type");
-        await creditWallet(
-          userId.toString(),
-          cashback,
-          WalletLedgerSource.CASHBACK,
-          newSub._id.toString(),
-          { description: `Subscription cashback bonus — ₹${cashback}` }
-        );
-        console.log(`Credited ₹${cashback} cashback to user ${userId} for subscription ${newSub._id}`);
-      } catch (err) {
-        // Non-fatal — don't fail the purchase if wallet credit fails
-        console.error("Failed to credit subscription cashback:", err);
-      }
-    }
-  }
-
-  return new ApiSuccess<IUserSubscription>(201, "Subscription purchased successfully", newSub);
+  // Cashback is credited by the Razorpay webhook once payment is confirmed.
+  return new ApiSuccess<IUserSubscription>(201, "Subscription registered. Awaiting payment.", newSub);
 }
 
 /** GET USER SUBSCRIPTIONS */
@@ -272,10 +235,13 @@ export async function getSubscriptionChargeForComplaint(
   const nextUsageIndex = usageCount + 1; // 1-based
 
   if (nextUsageIndex <= lockInServices) {
-    // Within lock-in period → already paid upfront at purchase, no extra charge
+    // Within lock-in period — covered by upfront payment
+    return { chargeType: "none", amount: 0 };
+  } else if (sub.remainingAmount <= 0) {
+    // Beyond lock-in but remaining balance already paid — all services unlocked
     return { chargeType: "none", amount: 0 };
   } else {
-    // Beyond lock-in → charge the remaining subscription balance (unlocks all remaining free services)
+    // Beyond lock-in — charge the remaining subscription balance to unlock all remaining services
     return { chargeType: "remaining", amount: sub.remainingAmount };
   }
 }
@@ -284,5 +250,13 @@ export async function getSubscriptionChargeForComplaint(
 export async function getSubscriptionById(id: string) {
   const sub = await UserSubscriptionModel.findById(id);
   if (!sub) throw new ApiError(404, "Subscription not found");
-  return new ApiSuccess(200, "Subscription retrieved", sub);
+
+  const lastUsage = await SubscriptionUsageModel.findOne({ subscription: id })
+    .sort({ usedAt: -1 })
+    .select("usedAt");
+
+  return new ApiSuccess(200, "Subscription retrieved", {
+    ...sub.toObject(),
+    lastServicedAt: lastUsage?.usedAt ?? null,
+  });
 }

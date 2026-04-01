@@ -8,6 +8,8 @@ import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 import * as crypto from "crypto";
 import { WalletLedgerSource } from "../types/wallet.type";
 import { creditWallet } from "../services/wallet.services";
+import { UserSubscriptionModel } from "../models/schema/UserSubscription.schema";
+import { SubscriptionPaymentModel } from "../models/schema/SubscriptionPayment.schema";
 
 /**
  * Customer triggers payment verification request
@@ -566,6 +568,120 @@ export const razorpayWebhook = async (req: Request, res: Response) => {
                         "Wallet Recharged",
                         `₹${amountRupees} added to your wallet successfully.`
                     );
+                }
+            } else if (paymentRef.startsWith("PAY-SM-")) {
+                // Metered Subscription Remaining Balance Payment
+                // Clears the outstanding balance on an active metered subscription
+                const subscriptionId = paymentRef.slice("PAY-SM-".length);
+                const sub = await UserSubscriptionModel.findById(subscriptionId);
+
+                if (sub) {
+                    if (sub.remainingAmount <= 0) {
+                        console.log(`Subscription ${subscriptionId} remaining balance already cleared. Skipping.`);
+                    } else {
+                        console.log(`Clearing metered remaining balance for subscription ${subscriptionId}, ₹${amountRupees}`);
+
+                        sub.totalPaid = (sub.totalPaid || 0) + amountRupees;
+                        sub.remainingAmount = Math.max(0, (sub.remainingAmount || 0) - amountRupees);
+                        sub.paymentStatus = sub.remainingAmount <= 0 ? "completed" : "partial";
+
+                        await sub.save();
+
+                        await SubscriptionPaymentModel.create({
+                            subscription: sub._id,
+                            user: sub.user,
+                            amount: amountRupees,
+                            paymentType: "metered_completion",
+                            transactionRef: paymentEntity?.id || paymentRef,
+                            status: "completed",
+                            paidAt: new Date(),
+                        });
+
+                        socketService.emitToUser(
+                            sub.user.toString(),
+                            "subscription:remaining_paid",
+                            {
+                                subscriptionId: sub._id,
+                                amountPaid: amountRupees,
+                                remainingAmount: sub.remainingAmount,
+                            },
+                            "Subscription Updated",
+                            `₹${amountRupees} received. Remaining services are now unlocked.`
+                        );
+                    }
+                } else {
+                    console.error(`Subscription not found for paymentRef: ${paymentRef}`);
+                }
+            } else if (paymentRef.startsWith("PAY-S-")) {
+                // Subscription Payment Flow — activate the pending subscription
+                const subscriptionId = paymentRef.slice("PAY-S-".length);
+                const sub = await UserSubscriptionModel.findById(subscriptionId);
+
+                if (sub) {
+                    if (sub.paymentStatus === "completed") {
+                        console.log(`Subscription ${subscriptionId} is already paid. Skipping.`);
+                    } else {
+                        console.log(`Activating subscription ${subscriptionId} for ₹${amountRupees}`);
+
+                        const addonsTotalSales = (sub.addons_snapshot || []).reduce(
+                            (sum: number, a: any) => sum + (a.pricing?.sub_sales || 0),
+                            0
+                        );
+                        const totalRequired = (sub.plan_snapshot?.pricing?.sub_sales || 0) + addonsTotalSales;
+
+                        sub.totalPaid = (sub.totalPaid || 0) + amountRupees;
+                        sub.remainingAmount = Math.max(0, totalRequired - sub.totalPaid);
+                        sub.paymentStatus =
+                            sub.totalPaid >= totalRequired ? "completed" : sub.totalPaid > 0 ? "partial" : "pending";
+
+                        // Only upgrade status, never downgrade
+                        if (sub.status === "pending" || sub.status === "scheduled") {
+                            sub.status = sub.startDate <= new Date() ? "active" : "scheduled";
+                        }
+
+                        await sub.save();
+
+                        await SubscriptionPaymentModel.create({
+                            subscription: sub._id,
+                            user: sub.user,
+                            amount: amountRupees,
+                            paymentType: "upfront",
+                            transactionRef: paymentEntity?.id || paymentRef,
+                            status: "completed",
+                            paidAt: new Date(),
+                        });
+
+                        // Cashback bonus
+                        const maxDiscount: number = (sub.plan_snapshot as any)?.maxDiscount || 0;
+                        if (maxDiscount > 0) {
+                            const cashback = Math.round(
+                                Math.min(Math.random(), Math.random(), Math.random()) * maxDiscount
+                            );
+                            if (cashback > 0) {
+                                try {
+                                    await creditWallet(
+                                        sub.user.toString(),
+                                        cashback,
+                                        WalletLedgerSource.CASHBACK,
+                                        sub._id.toString(),
+                                        { description: `Subscription cashback bonus — ₹${cashback}` }
+                                    );
+                                } catch (err) {
+                                    console.error("Failed to credit subscription cashback:", err);
+                                }
+                            }
+                        }
+
+                        socketService.emitToUser(
+                            sub.user.toString(),
+                            "subscription:activated",
+                            { subscriptionId: sub._id, status: sub.status, amountPaid: amountRupees },
+                            "Subscription Activated",
+                            `Your subscription is now ${sub.status}.`
+                        );
+                    }
+                } else {
+                    console.error(`Subscription not found for paymentRef: ${paymentRef}`);
                 }
             } else if (paymentRef.startsWith("PAY-C-") || paymentRef.startsWith("PAY-")) {
                 // Complaint Booking Payment Flow

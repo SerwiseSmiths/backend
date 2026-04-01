@@ -34,7 +34,7 @@ export interface IUserSubscription extends Document {
   }[];
   startDate: Date;
   expiryDate: Date;
-  status: "pending" | "active" | "expired" | "cancelled";
+  status: "pending" | "scheduled" | "active" | "expired" | "cancelled";
   paymentModel: "flat" | "metered";
   paymentStatus: "pending" | "partial" | "completed";
   totalPaid: number;
@@ -52,7 +52,7 @@ const userSubscriptionSchema = new Schema<IUserSubscription>(
     expiryDate: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["pending", "active", "expired", "cancelled"],
+      enum: ["pending", "scheduled", "active", "expired", "cancelled"],
       default: "pending",
     },
     paymentModel: {

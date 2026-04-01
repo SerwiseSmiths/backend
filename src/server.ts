@@ -6,10 +6,12 @@ import { NODE_ENV } from "./config/env.config";
 
 import { createServer } from "http";
 import socketService from "./services/socket.service";
+import { startSubscriptionCron } from "./jobs/subscription.cron";
 
 const PORT = process.env.PORT || 3000;
 
 connectDB();
+startSubscriptionCron();
 
 const httpServer = createServer(app);
 

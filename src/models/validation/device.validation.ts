@@ -23,6 +23,7 @@ export const deviceDescriptionSchema = Joi.object({
 
   age: Joi.number().min(0).required(),
   storageCapacity: Joi.number().min(0).required(),
+  purchaseDate: Joi.string().optional(),
   location: Joi.string().required(),
 });
 
