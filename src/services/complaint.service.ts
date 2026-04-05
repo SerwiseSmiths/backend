@@ -13,6 +13,7 @@ import socketService from "./socket.service";
 import { creditWallet } from "./wallet.services";
 import { WalletLedgerSource } from "../types/wallet.type";
 import { QuoteModel } from "../models/schema/Quote.schema";
+import { notifyComplaintCreated, notifyComplaintUpdated } from "./telegram.service";
 
 export const createComplaint = async (
   data: ICreateComplaintInput,
@@ -137,6 +138,8 @@ export const createComplaint = async (
     );
   }
 
+  notifyComplaintCreated(complaint).catch(() => {});
+
   return new ApiSuccess(201, "Complaint created successfully", { complaint });
 };
 
@@ -168,6 +171,7 @@ export const updateComplaint = async (
     : updated.provider?.toString() || null;
 
   socketService.emitComplaintUpdated(userId, providerId, updated);
+  notifyComplaintUpdated(updated, data as Record<string, any>).catch(() => {});
 
   return new ApiSuccess(200, "Complaint updated", { complaint: updated });
 };

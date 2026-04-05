@@ -9,6 +9,7 @@ import { UserSubscriptionModel, IUserSubscription } from "../models/schema/UserS
 import { SubscriptionUsageModel } from "../models/schema/SubscriptionUsage.schema";
 import { SubscriptionPaymentModel } from "../models/schema/SubscriptionPayment.schema";
 import * as strapiService from "./strapi.service";
+import { notifySubscriptionCreated } from "./telegram.service";
 
 /** PURCHASE SUBSCRIPTION */
 export async function purchaseSubscription(
@@ -88,6 +89,8 @@ export async function purchaseSubscription(
   const newSub = await UserSubscriptionModel.create(subData);
 
   // Cashback is credited by the Razorpay webhook once payment is confirmed.
+  notifySubscriptionCreated(newSub).catch(() => {});
+
   return new ApiSuccess<IUserSubscription>(201, "Subscription registered. Awaiting payment.", newSub);
 }
 

@@ -10,6 +10,7 @@ import { WalletLedgerSource } from "../types/wallet.type";
 import { creditWallet } from "../services/wallet.services";
 import { UserSubscriptionModel } from "../models/schema/UserSubscription.schema";
 import { SubscriptionPaymentModel } from "../models/schema/SubscriptionPayment.schema";
+import { notifyPaymentVerified } from "../services/telegram.service";
 
 /**
  * Customer triggers payment verification request
@@ -651,26 +652,32 @@ export const razorpayWebhook = async (req: Request, res: Response) => {
                             paidAt: new Date(),
                         });
 
-                        // Cashback bonus
+                        // Cashback bonus — min ₹5, max up to maxDiscount
                         const maxDiscount: number = (sub.plan_snapshot as any)?.maxDiscount || 0;
                         if (maxDiscount > 0) {
-                            const cashback = Math.round(
+                            const rawCashback = Math.round(
                                 Math.min(Math.random(), Math.random(), Math.random()) * maxDiscount
                             );
-                            if (cashback > 0) {
-                                try {
-                                    await creditWallet(
-                                        sub.user.toString(),
-                                        cashback,
-                                        WalletLedgerSource.CASHBACK,
-                                        sub._id.toString(),
-                                        { description: `Subscription cashback bonus — ₹${cashback}` }
-                                    );
-                                } catch (err) {
-                                    console.error("Failed to credit subscription cashback:", err);
-                                }
+                            const cashback = Math.max(5, rawCashback);
+                            try {
+                                await creditWallet(
+                                    sub.user.toString(),
+                                    cashback,
+                                    WalletLedgerSource.CASHBACK,
+                                    sub._id.toString(),
+                                    { description: `Subscription cashback bonus — ₹${cashback}` }
+                                );
+                            } catch (err) {
+                                console.error("Failed to credit subscription cashback:", err);
                             }
                         }
+
+                        notifyPaymentVerified({
+                            sub,
+                            amountRupees,
+                            paymentId: paymentEntity?.id || paymentRef,
+                            paymentRef,
+                        }).catch(() => {});
 
                         socketService.emitToUser(
                             sub.user.toString(),

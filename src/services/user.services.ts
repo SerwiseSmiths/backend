@@ -11,6 +11,10 @@ import ApiError from "../utils/api/ApiError.api.util";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 import { UserRecord } from "firebase-admin/lib/auth/user-record";
 import usernameService from "./username.service";
+import { creditWallet } from "./wallet.services";
+import { WalletLedgerSource } from "../types/wallet.type";
+import { fetchSignupBonusConfig } from "./strapi.service";
+import { notifyNewUser } from "./telegram.service";
 
 /**
  * Registers a new user.
@@ -54,6 +58,36 @@ export async function registerUser(
   const newUser = await userRepo.createUser(value);
 
   console.log(newUser);
+
+  // Telegram notification (fire-and-forget)
+  notifyNewUser(newUser).catch(() => {});
+
+  // Credit signup bonus if configured in Strapi
+  try {
+    console.log("[SignupBonus] Fetching bonus config from Strapi...");
+    const bonusConfig = await fetchSignupBonusConfig();
+    console.log("[SignupBonus] Config received:", JSON.stringify(bonusConfig));
+
+    if (!bonusConfig) {
+      console.warn("[SignupBonus] No config returned from Strapi — skipping");
+    } else if (!bonusConfig.enabled) {
+      console.warn("[SignupBonus] Bonus is disabled in Strapi — skipping");
+    } else if (bonusConfig.bonusAmount <= 0) {
+      console.warn("[SignupBonus] bonusAmount is 0 or negative — skipping");
+    } else {
+      console.log(`[SignupBonus] Crediting ₹${bonusConfig.bonusAmount} to user ${newUser!._id}`);
+      await creditWallet(
+        newUser!._id.toString(),
+        bonusConfig.bonusAmount,
+        WalletLedgerSource.CASHBACK,
+        undefined,
+        { description: `Welcome bonus — ₹${bonusConfig.bonusAmount}` }
+      );
+      console.log(`[SignupBonus] ✅ ₹${bonusConfig.bonusAmount} credited successfully to ${newUser!._id}`);
+    }
+  } catch (err) {
+    console.error("[SignupBonus] ❌ Failed to credit signup bonus:", err);
+  }
 
   return new ApiSuccess<userApiData>(
     201,

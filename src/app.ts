@@ -26,6 +26,7 @@ import chatRoutes from "./routes/chat.route";
 import circleRoutes from "./routes/circle.route";
 import configRoutes from "./routes/config.route";
 import healthRoutes from "./routes/health.route";
+import waitlistRoutes from "./routes/waitlist.route";
 
 const app: Application = express();
 app.use(cors());
@@ -53,6 +54,7 @@ app.use(`${BASE_URL}/notification`, notificationRoutes);
 app.use(`${BASE_URL}/upload`, uploadRoutes);
 app.use(`${BASE_URL}/config`, configRoutes);
 app.use(`${BASE_URL}/health`, healthRoutes);
+app.use(`${BASE_URL}/waitlist`, waitlistRoutes);
 // app.use(errorHandler);
 
 export default app;

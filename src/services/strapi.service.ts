@@ -147,6 +147,25 @@ export const fetchFromStrapi = async (path: string): Promise<any> => {
   }
 };
 
+/**
+ * Fetch signup bonus configuration from Strapi single type
+ */
+export const fetchSignupBonusConfig = async (): Promise<{
+  enabled: boolean;
+  bonusAmount: number;
+} | null> => {
+  const data = await fetchFromStrapi("/sign-up-bonus");
+  console.log("[SignupBonus] Raw Strapi REST response:", JSON.stringify(data));
+  if (!data?.data) {
+    console.warn("[SignupBonus] Strapi returned no data — check that sign-up-bonus single type is published and accessible");
+    return null;
+  }
+  return {
+    enabled: data.data.enabled ?? false,
+    bonusAmount: data.data.bonusAmount ?? 0,
+  };
+};
+
 export default {
   fetchDeviceTypes,
   fetchDeviceTypeById,
@@ -154,4 +173,5 @@ export default {
   clearDeviceTypeCache,
   getActiveDeviceTypes,
   fetchFromStrapi,
+  fetchSignupBonusConfig,
 };

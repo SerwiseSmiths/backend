@@ -7,6 +7,38 @@ import * as bcrypt from "bcryptjs";
 import axios from "axios";
 import { sendWhatsAppText } from "./msg91WhatsApp.service";
 import { verifyTruecallerResponse } from "./truecaller.service";
+import { notifyNewUser } from "./telegram.service";
+import { creditWallet } from "./wallet.services";
+import { WalletLedgerSource } from "../types/wallet.type";
+import { fetchSignupBonusConfig } from "./strapi.service";
+
+async function creditSignupBonus(userId: string): Promise<void> {
+  try {
+    console.log("[SignupBonus] Fetching bonus config from Strapi...");
+    const bonusConfig = await fetchSignupBonusConfig();
+    console.log("[SignupBonus] Config received:", JSON.stringify(bonusConfig));
+
+    if (!bonusConfig) {
+      console.warn("[SignupBonus] No config returned from Strapi — skipping");
+    } else if (!bonusConfig.enabled) {
+      console.warn("[SignupBonus] Bonus is disabled in Strapi — skipping");
+    } else if (bonusConfig.bonusAmount <= 0) {
+      console.warn("[SignupBonus] bonusAmount is 0 or negative — skipping");
+    } else {
+      console.log(`[SignupBonus] Crediting ₹${bonusConfig.bonusAmount} to user ${userId}`);
+      await creditWallet(
+        userId,
+        bonusConfig.bonusAmount,
+        WalletLedgerSource.CASHBACK,
+        undefined,
+        { description: `Welcome bonus — ₹${bonusConfig.bonusAmount}` }
+      );
+      console.log(`[SignupBonus] ✅ ₹${bonusConfig.bonusAmount} credited successfully to ${userId}`);
+    }
+  } catch (err) {
+    console.error("[SignupBonus] ❌ Failed to credit signup bonus:", err);
+  }
+}
 
 const TRUECALLER_TOKEN_URL = "https://oauth-account-noneu.truecaller.com/v1/token";
 const TRUECALLER_USERINFO_URL = "https://oauth-account-noneu.truecaller.com/v1/userinfo";
@@ -70,6 +102,8 @@ export const login = async (_phoneNo: string, _userType?: string, appContext?: s
     });
 
     console.log(`New user created with ID: ${user._id}`);
+    notifyNewUser(user).catch(() => {});
+    creditSignupBonus(user._id.toString()).catch(() => {});
   } else {
     console.log(`Existing user found: ${user._id}`);
     if (isRadixContext && user.userType !== "provider") {
@@ -91,6 +125,9 @@ export const generateOtp = async (_phoneNo: string) => {
     throw new ApiError(400, "Phone no required");
   }
 
+  const existingUser = await UserRepo.retriveUserByPhoneNo(_phoneNo);
+  const userExists = !!existingUser;
+
   const otp = generateOtpCode();
   const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
   const salt = await bcrypt.genSalt(10);
@@ -102,6 +139,7 @@ export const generateOtp = async (_phoneNo: string) => {
 
   return new ApiSuccess(200, "OTP generated successfully", {
     ttlMinutes: OTP_TTL_MINUTES,
+    userExists,
   });
 };
 
@@ -203,6 +241,8 @@ export const truecallerAuth = async (params: {
       firstName: profile.firstName || "User",
       lastName: profile.lastName || normalizedPhone.slice(-4),
     });
+    notifyNewUser(user).catch(() => {});
+    creditSignupBonus(user._id.toString()).catch(() => {});
   }
 
   const tokens = await user.generateAuthTokens();
@@ -280,6 +320,8 @@ export const truecallerOAuthAuth = async (params: {
       lastName,
       profileImage: profile?.picture ?? undefined,
     });
+    notifyNewUser(user).catch(() => {});
+    creditSignupBonus(user._id.toString()).catch(() => {});
   }
 
   const tokens = await user.generateAuthTokens();
