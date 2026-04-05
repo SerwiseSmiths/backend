@@ -11,7 +11,7 @@ export interface IWaitlist {
 
 export interface WaitlistDocument extends IWaitlist, Document {}
 
-const WaitlistSchema = new Schema<IWaitlist>(
+const WaitlistSchema = new Schema<WaitlistDocument>(
   {
     phoneNo: { type: String, required: true, unique: true, trim: true },
     countryCode: { type: String, required: true, default: "+91" },
