@@ -46,8 +46,10 @@ const TRUECALLER_USERINFO_URL = "https://oauth-account-noneu.truecaller.com/v1/u
 const OTP_TTL_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 5;
 
-const TEST_PHONE = "1234567890";
-const TEST_OTP = "123456";
+const TEST_PHONES: Record<string, string> = {
+  "1234567890": "123456",
+  "9112345678": "123456",
+};
 
 const OTP_MESSAGE_TEMPLATE = "Your OTP is {otp}. Valid for {minutes} minutes. Do not share.";
 
@@ -132,10 +134,11 @@ export const generateOtp = async (_phoneNo: string) => {
   const userExists = !!existingUser;
 
   // Test number: skip real OTP generation and delivery
-  if (_phoneNo === TEST_PHONE) {
-    console.log(`[TEST] OTP for ${_phoneNo}: ${TEST_OTP}`);
+  if (_phoneNo in TEST_PHONES) {
+    const testOtp = TEST_PHONES[_phoneNo]!;
+    console.log(`[TEST] OTP for ${_phoneNo}: ${testOtp}`);
     const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(TEST_OTP, salt);
+    const hash = await bcrypt.hash(testOtp, salt);
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
     await OtpRepo.upsertOtp(_phoneNo, hash, expiresAt);
     return new ApiSuccess(200, "OTP generated successfully", {
@@ -186,7 +189,7 @@ export const verifyOtp = async (
   }
 
   const isMatch =
-    (_phoneNo === TEST_PHONE && otp === TEST_OTP) ||
+    (_phoneNo in TEST_PHONES && otp === TEST_PHONES[_phoneNo]) ||
     (await bcrypt.compare(otp, record.otp));
 
   if (!isMatch) {
