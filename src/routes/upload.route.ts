@@ -1,6 +1,6 @@
 // routes/upload.route.ts
 import * as express from "express";
-import * as multer from "multer";
+import multer = require("multer");
 import * as uploadController from "../controllers/upload.controller";
 import { auth } from "../middlewares/auth.middleware";
 
