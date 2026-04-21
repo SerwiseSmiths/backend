@@ -1,7 +1,6 @@
 import mongoose, { Model, Schema } from "mongoose";
 import { IUser, UserDocument } from "../../types/user.type";
 import { UserType } from "../../constants/user.constant";
-import * as bcrypt from "bcryptjs";
 import ApiError from "../../utils/api/ApiError.api.util";
 import * as jwt from "jsonwebtoken";
 import { generateReferenceCode } from "../../utils/refCode.utils";
@@ -29,7 +28,6 @@ const UserSchema = new Schema<IUser>(
     profileImage: { type: String, required: false },
 
     firstName: { type: String, required: true, trim: true },
-    middleName: { type: String, trim: true },
     lastName: { type: String, required: true, trim: true },
 
     refrenceCode: { type: String, required: false, unique: true },
@@ -41,11 +39,9 @@ const UserSchema = new Schema<IUser>(
     },
 
     refreshToken: { type: String, default: null },
-    source: { type: String, required: false },
 
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
-    isStaff: { type: Boolean, default: false },
 
     // 🔥 Newly Added for Chat:
     username: { type: String, unique: true, sparse: true, trim: true },
@@ -89,16 +85,7 @@ UserSchema.pre("save", async function (next) {
 // Instance Method: Full Name
 // -----------------------------------------
 UserSchema.methods.fullName = function (): string {
-  return `${this.firstName} ${this.middleName ? this.middleName + " " : ""}${this.lastName}`;
-};
-
-// -----------------------------------------
-// Instance Method: Compare profileImage hash
-// -----------------------------------------
-UserSchema.methods.validateprofileImage = async function (
-  _enteredprofileImage: string
-): Promise<boolean> {
-  return bcrypt.compare(_enteredprofileImage, this.profileImage);
+  return `${this.firstName} ${this.lastName}`;
 };
 
 // ===================================================================

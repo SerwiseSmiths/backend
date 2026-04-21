@@ -1,5 +1,4 @@
 import * as quoteRepo from "../repositories/quote.repo";
-import { ServiceModel } from "../models/schema/Service.schema";
 import { ComplaintModel } from "../models/schema/Complaint.schema";
 import * as complaintService from "./complaint.service";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";

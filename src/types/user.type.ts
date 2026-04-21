@@ -17,9 +17,7 @@ export interface IUser extends Document {
   email?: string;
   profileImage: string;
   firstName: string;
-  middleName?: string;
   lastName: string;
-  source?: string;
 
   userType: UserType;
   refreshToken?: string | null;
@@ -27,7 +25,6 @@ export interface IUser extends Document {
 
   isActive: boolean;
   isDeleted: boolean;
-  isStaff: boolean;
 
   // 🔥 Newly Added for Chat:
   username?: string;
@@ -36,7 +33,6 @@ export interface IUser extends Document {
 
   // -------- Instance Methods --------
   fullName(): string;
-  validateprofileImage(_enteredprofileImage: string): Promise<boolean>;
 
   // 🔥 Newly Added:
   generateAuthTokens(): Promise<IAuthTokens>;

@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import { ComplaintModel } from './models/schema/Complaint.schema';
 import { UserSubscriptionModel } from './models/schema/UserSubscription.schema';
 import paymentCalculationService from './services/paymentCalculation.service';
-import { ServiceModel } from './models/schema/Service.schema';
 import { QuoteModel } from './models/schema/Quote.schema';
 import * as dotenv from 'dotenv';
 import * as path from 'path';

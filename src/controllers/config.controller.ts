@@ -34,3 +34,59 @@ export async function getAppVersion(req: Request, res: Response) {
   const result = new ApiSuccess(200, "OK", config);
   return res.status(result.statusCode).json(result);
 }
+
+/**
+ * GET /config/serwise
+ * Returns configuration for Serwise app.
+ */
+export async function getSerwiseConfig(req: Request, res: Response) {
+  const config = {
+    backendUrl: process.env.BACKEND_URL,
+    strapiUrl: process.env.STRAPI_API_URL,
+    strapiToken: process.env.STRAPI_API_TOKEN,
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    firebase: {
+      apiKey: process.env.FIREBASE_APIKEY,
+      authDomain: process.env.FIREBASE_AUTHDOMAIN,
+      projectId: process.env.FIREBASE_PROJECTID,
+      storageBucket: process.env.FIREBASE_STORAGEBUCKET,
+      messagingSenderId: process.env.FIREBASE_MESSAGINGSENDERID,
+      appId: process.env.FIREBASE_APPID,
+      measurementId: process.env.FIREBASE_MESUREMENTID,
+    },
+    mapMyIndia: {
+      restApiKey: process.env.MAPMYINDIA_REST_API_KEY,
+      mapSdkKey: process.env.MAPMYINDIA_MAP_SDK_KEY,
+      clientId: process.env.MAPMYINDIA_CLIENT_ID,
+      clientSecret: process.env.MAPMYINDIA_CLIENT_SECRET,
+    },
+    razorpay: {
+      keyId: process.env.RAZORPAY_KEY_ID,
+    }
+  };
+  const result = new ApiSuccess(200, "OK", config);
+  return res.status(result.statusCode).json(result);
+}
+
+/**
+ * GET /config/radix
+ * Returns configuration for Radix app.
+ */
+export async function getRadixConfig(req: Request, res: Response) {
+  const config = {
+    backendUrl: process.env.BACKEND_URL,
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    strapiUrl: process.env.STRAPI_API_URL,
+    strapiToken: process.env.STRAPI_API_TOKEN,
+    mapMyIndia: {
+      restApiKey: process.env.MAPMYINDIA_REST_API_KEY,
+      mapSdkKey: process.env.MAPMYINDIA_MAP_SDK_KEY,
+      clientId: process.env.MAPMYINDIA_CLIENT_ID,
+      clientSecret: process.env.MAPMYINDIA_CLIENT_SECRET,
+    },
+  };
+  const result = new ApiSuccess(200, "OK", config);
+  return res.status(result.statusCode).json(result);
+}

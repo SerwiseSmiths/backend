@@ -2,6 +2,7 @@ import * as authService from "../services/auth.service";
 import * as UserRepo from "../repositories/user.repo";
 import ApiSuccess from "../utils/api/ApiSuccess.api.util";
 import ApiError from "../utils/api/ApiError.api.util";
+import * as jwt from "jsonwebtoken";
 
 export const login = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
     const { phoneNo, userType }: { phoneNo: string, userType?: string } = req.body;
@@ -49,6 +50,30 @@ export const me = async (req: ExpressRequest, res: ExpressResponse, next: Expres
                 },
             })
         );
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const refreshToken = async (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
+    try {
+        const { refreshToken: token } = req.body;
+        if (!token) throw new ApiError(400, "Refresh token required");
+
+        // Verify the refresh token is still cryptographically valid
+        let decoded: any;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET!);
+        } catch {
+            throw new ApiError(401, "Refresh token expired or invalid");
+        }
+
+        // Find user and confirm the stored refresh token matches
+        const user = await UserRepo.retrieveUserByRefreshToken(token);
+        if (!user) throw new ApiError(401, "Refresh token revoked or not found");
+
+        const tokens = await user.generateAuthTokens();
+        return res.status(200).json(new ApiSuccess(200, "Token refreshed successfully", { tokens }));
     } catch (error) {
         next(error);
     }

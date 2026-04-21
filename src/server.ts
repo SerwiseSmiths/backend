@@ -15,7 +15,7 @@ startSubscriptionCron();
 
 const httpServer = createServer(app);
 
-socketService.initialize(httpServer);
+socketService.initialize();
 
 httpServer.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT} [${NODE_ENV}]`);

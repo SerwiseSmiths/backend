@@ -104,6 +104,15 @@ export const retrieveAllUsers = async (
   }
 };
 
+export const retrieveUserByRefreshToken = async (
+  refreshToken: string
+): Promise<UserDocument | null> => {
+  if (!refreshToken || typeof refreshToken !== "string") {
+    return null;
+  }
+  return UserModel.findOne({ refreshToken, isDeleted: false });
+};
+
 export const updateUserById = async (
   _id: mongodbId,
   data: Partial<IUser>

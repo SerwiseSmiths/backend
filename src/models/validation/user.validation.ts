@@ -28,8 +28,6 @@ export const userValidationSchema = Joi.object({
     "string.empty": "First name is required",
   }),
 
-  middleName: Joi.string().trim().optional().allow(null, ""),
-
   lastName: Joi.string().trim().required().messages({
     "string.empty": "Last name is required",
   }),
@@ -37,6 +35,4 @@ export const userValidationSchema = Joi.object({
   userType: Joi.string()
     .valid(...Object.values(UserType))
     .default(UserType.CUSTOMER),
-
-  source: Joi.string().required(),
 });

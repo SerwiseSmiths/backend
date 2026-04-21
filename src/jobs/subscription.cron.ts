@@ -2,12 +2,12 @@ import cron from "node-cron";
 import { UserSubscriptionModel } from "../models/schema/UserSubscription.schema";
 
 /**
- * Runs every day at midnight (00:00).
+ * Runs every day at 12:10 AM (00:10).
  * Activates all "scheduled" subscriptions whose startDate has arrived.
  * Also expires "active" subscriptions past their expiryDate.
  */
 export function startSubscriptionCron() {
-    cron.schedule("0 0 * * *", async () => {
+    cron.schedule("10 0 * * *", async () => {
         const now = new Date();
 
         try {
