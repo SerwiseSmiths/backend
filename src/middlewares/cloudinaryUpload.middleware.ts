@@ -4,7 +4,8 @@ import * as fs from "fs";
 import { uploadToCloudinary } from "../utils/upload.util";
 
 // temporary storage
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ dest: "/tmp/uploads/" });
+
 
 export const cloudinaryUploadMiddleware: RequestHandler[] = [
   upload.single("file"),
