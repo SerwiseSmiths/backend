@@ -7,7 +7,8 @@ import { auth } from "../middlewares/auth.middleware";
 const router: Router = Router();
 
 // Multer setup for temporary storage
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ dest: "/tmp/uploads/" });
+
 
 /**
  * @route POST /api/v2/upload/single

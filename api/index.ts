@@ -5,6 +5,7 @@ import { errorHandler } from "../src/middlewares/errorHandler.middleware";
 import morgan from "morgan";
 import cors from "cors";
 import { isProd } from "../src/config/env.config";
+import { connectDB } from "../src/config/mongo.config";
 
 import userRoutes from "../src/routes/user.route";
 import authRoutes from "../src/routes/auth.route";
@@ -26,6 +27,9 @@ import configRoutes from "../src/routes/config.route";
 import healthRoutes from "../src/routes/health.route";
 import waitlistRoutes from "../src/routes/waitlist.route";
 import contactRoutes from "../src/routes/contact.route";
+
+// Initialize database connection
+connectDB();
 
 const app: Application = express();
 app.use(cors());

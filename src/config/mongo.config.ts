@@ -14,8 +14,11 @@ export const connectDB = async (): Promise<void> => {
   } catch (error) {
     const err = error as Error;
     console.error(`❌ MongoDB Error: ${err.message}`);
-    process.exit(1);
+    // Do not exit process in serverless environment
+    // process.exit(1);
+    throw err;
   }
 };
+
 
 export type mongodbId = Types.ObjectId;
