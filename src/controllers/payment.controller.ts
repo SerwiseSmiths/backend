@@ -255,7 +255,7 @@ export const getPaymentQRCode = async (req: Request, res: Response) => {
         }
 
         // Calculate remaining payment amount
-        const remainingAmount = await paymentCalculationService.getRemainingPaymentAmount(complaintId);
+        const remainingAmount = await paymentCalculationService.getRemainingPaymentAmount(complaintId as string);
 
         if (remainingAmount <= 0) {
             return res.status(200).json(
@@ -312,8 +312,8 @@ export const calculatePayment = async (req: Request, res: Response) => {
             throw new ApiError(400, "Complaint ID is required");
         }
 
-        const amount = await paymentCalculationService.calculatePaymentAmount(complaintId);
-        const remainingAmount = await paymentCalculationService.getRemainingPaymentAmount(complaintId);
+        const amount = await paymentCalculationService.calculatePaymentAmount(complaintId as string);
+        const remainingAmount = await paymentCalculationService.getRemainingPaymentAmount(complaintId as string);
 
         const result = new ApiSuccess(200, "Payment calculated", {
             totalAmount: amount,
@@ -366,7 +366,7 @@ export const collectCashPayment = async (req: Request, res: Response) => {
         }
 
         // Calculate remaining payment amount
-        const remainingAmount = await paymentCalculationService.getRemainingPaymentAmount(complaintId);
+        const remainingAmount = await paymentCalculationService.getRemainingPaymentAmount(complaintId as string);
 
         if (remainingAmount <= 0) {
             throw new ApiError(400, "No payment required for this complaint");
@@ -382,8 +382,8 @@ export const collectCashPayment = async (req: Request, res: Response) => {
             providerId.toString(),
             remainingAmount,
             WalletLedgerSource.ORDER_PAYMENT,
-            complaintId,
-            { type: "cash_collection", complaintId: complaintId }
+            complaintId as string,
+            { type: "cash_collection", complaintId: complaintId as string }
         );
 
         // Update complaint
@@ -463,7 +463,7 @@ export const bypassZeroPayment = async (req: Request, res: Response) => {
             throw new ApiError(403, "Unauthorized: You are not assigned to this complaint");
         }
 
-        const remainingAmount = await paymentCalculationService.getRemainingPaymentAmount(complaintId);
+        const remainingAmount = await paymentCalculationService.getRemainingPaymentAmount(complaintId as string);
 
         if (remainingAmount > 0) {
             throw new ApiError(400, "Cannot bypass: Payment is still required (Amount > 0)");

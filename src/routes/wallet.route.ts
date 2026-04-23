@@ -1,5 +1,5 @@
-import * as express from "express";
-const router: express.Router = express.Router();
+import { Router } from "express";
+const router: Router = Router();
 import * as walletController from "../controllers/wallet.controller";
 import { auth } from "../middlewares/auth.middleware";
 // Assuming there is an auth middleware to protect these routes

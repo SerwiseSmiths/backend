@@ -1,11 +1,11 @@
-import * as express from "express";
+import { Router } from "express";
 import * as controller from "../controllers/notification.controller";
 import { auth } from "../middlewares/auth.middleware";
 import { authOptional } from "../middlewares/authOptional.middleware";
 import { authorize } from "../middlewares/authorize.middleware";
 
 
-const router = express.Router();
+const router: Router = Router();
 
 
 

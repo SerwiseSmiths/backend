@@ -1,8 +1,8 @@
-import * as Express from 'express';
+import { Router } from 'express';
 import * as selfController from '../controllers/self.contoller';
 import { auth } from '../middlewares/auth.middleware';
 
-const router = Express.Router();
+const router: Router = Router();
 
 router.get('/home', auth, selfController.home);
 router.get('/address', auth, selfController.getSelfAddress);

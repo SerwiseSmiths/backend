@@ -1,0 +1,1 @@
+{"version":3,"file":"SubscriptionUsage.schema.d.ts","sourceRoot":"","sources":["SubscriptionUsage.schema.ts"],"names":[],"mappings":"AAAA,OAAO,EAAiB,QAAQ,EAAE,MAAM,UAAU,CAAC;AAEnD,MAAM,WAAW,kBAAmB,SAAQ,QAAQ;IAClD,YAAY,EAAE,SAAS,CAAC;IACxB,IAAI,EAAE,SAAS,CAAC;IAChB,SAAS,EAAE,SAAS,CAAC;IACrB,YAAY,EAAE,MAAM,CAAC;IACrB,MAAM,EAAE,IAAI,CAAC;CACd;AAiBD,eAAO,MAAM,sBAAsB;;;;OAGlC,CAAC"}

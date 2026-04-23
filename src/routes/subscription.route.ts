@@ -1,5 +1,5 @@
-import * as express from "express";
-const router: express.Router = express.Router();
+import { Router } from "express";
+const router: Router = Router();
 import * as subController from "../controllers/subscription.contoller";
 import { auth } from "../middlewares/auth.middleware";
 

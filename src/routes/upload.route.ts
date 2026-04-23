@@ -1,10 +1,10 @@
 // routes/upload.route.ts
-import * as express from "express";
+import { Router } from "express";
 import multer = require("multer");
 import * as uploadController from "../controllers/upload.controller";
 import { auth } from "../middlewares/auth.middleware";
 
-const router = express.Router();
+const router: Router = Router();
 
 // Multer setup for temporary storage
 const upload = multer({ dest: "uploads/" });

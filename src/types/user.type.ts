@@ -31,6 +31,8 @@ export interface IUser extends Document {
   hasSetUsername: boolean;
   circles: string[]; // Array of Circle IDs
 
+  source?: string; // Tracking for whitelisted providers or other entry points
+
   // -------- Instance Methods --------
   fullName(): string;
 

@@ -12,7 +12,7 @@ export const createDevice = async (req: Request, res: Response, next: NextFuncti
 
 export const getDevice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await deviceService.retrieve(req.params.id!);
+    const result = await deviceService.retrieve(req.params.id as string);
     res.status(result.statusCode).json(result);
   } catch (err) {
     next(err);
@@ -30,7 +30,7 @@ export const getDevices = async (req: Request, res: Response, next: NextFunction
 
 export const updateDevice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await deviceService.update(req.params.id!, req.body);
+    const result = await deviceService.update(req.params.id as string, req.body);
     res.status(result.statusCode).json(result);
   } catch (err) {
     next(err);
@@ -39,7 +39,7 @@ export const updateDevice = async (req: Request, res: Response, next: NextFuncti
 
 export const deleteDevice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await deviceService.softDelete(req.params.id!);
+    const result = await deviceService.softDelete(req.params.id as string);
     res.status(result.statusCode).json(result);
   } catch (err) {
     next(err);
@@ -48,7 +48,7 @@ export const deleteDevice = async (req: Request, res: Response, next: NextFuncti
 
 export const getUserDevices = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await deviceService.retrieveByUser(req.params.userId!);
+    const result = await deviceService.retrieveByUser(req.params.userId as string);
     res.status(result.statusCode).json(result);
   } catch (err) {
     next(err);

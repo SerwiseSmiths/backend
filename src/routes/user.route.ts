@@ -1,6 +1,5 @@
-// routes/user.route.ts
-import * as express from "express";
-const router: express.Router = express.Router();
+import { Router } from "express";
+const router: Router = Router();
 
 import * as userContoller from "../controllers/user.controller";
 import { cloudinaryUploadMiddleware } from "../middlewares/cloudinaryUpload.middleware";

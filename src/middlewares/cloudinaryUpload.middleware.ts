@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import * as multer from "multer";
 import * as fs from "fs";
 import { uploadToCloudinary } from "../utils/upload.util";
@@ -6,7 +6,7 @@ import { uploadToCloudinary } from "../utils/upload.util";
 // temporary storage
 const upload = multer({ dest: "uploads/" });
 
-export const cloudinaryUploadMiddleware = [
+export const cloudinaryUploadMiddleware: RequestHandler[] = [
   upload.single("file"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {

@@ -2,7 +2,7 @@ import { Router } from "express";
 import * as paymentVerificationController from "../controllers/payment.controller";
 import { auth } from "../middlewares/auth.middleware";
 
-const router = Router();
+const router: Router = Router();
 
 // Payment verification for complaints (admin email verification)
 router.post("/request-verification", auth, paymentVerificationController.requestPaymentVerification);

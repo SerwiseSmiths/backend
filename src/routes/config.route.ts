@@ -1,7 +1,7 @@
-import * as express from "express";
+import { Router } from "express";
 import * as configController from "../controllers/config.controller";
 
-const router = express.Router();
+const router: Router = Router();
 
 router.get("/app-version", configController.getAppVersion);
 router.get("/serwise", configController.getSerwiseConfig);

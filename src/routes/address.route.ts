@@ -1,8 +1,8 @@
-import * as express from "express";
+import { Router } from "express";
 import * as addressController from "../controllers/address.controller";
 import {auth} from "../middlewares/auth.middleware"
 
-const router: express.Router = express.Router();
+const router: Router = Router();
 
 // CRUD Routes
 router.post("/", auth, addressController.createAddress);

@@ -1,9 +1,9 @@
 // routes/complaint.route.ts
-import * as express from "express";
+import { Router } from "express";
 import * as complaintController from "../controllers/complaint.contoller";
 import { auth } from "../middlewares/auth.middleware";
 
-const router = express.Router();
+const router: Router = Router();
 
 // CRUD operations
 router.post("/", auth, complaintController.createComplaint);

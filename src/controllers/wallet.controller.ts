@@ -64,7 +64,7 @@ export const getWalletByUserId = async (
             throw new ApiError(400, "User ID is required");
         }
 
-        const result = await walletService.getWallet(userId);
+        const result = await walletService.getWallet(userId as string);
         res.status(result.statusCode).json(result);
     } catch (error) {
         next(error);

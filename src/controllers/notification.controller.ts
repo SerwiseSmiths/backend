@@ -107,7 +107,7 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
         const { id } = req.params;
         if (!id) throw new ApiError(400, "Notification ID is required");
 
-        const notification = await notificationService.markAsRead(id, userId);
+        const notification = await notificationService.markAsRead(id as string, userId);
 
 
         if (!notification) {

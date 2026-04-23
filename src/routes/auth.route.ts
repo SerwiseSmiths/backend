@@ -1,8 +1,8 @@
+import { Router } from "express";
 import * as authContoller from "../controllers/auth.controller";
-import * as express from "express"
 import { auth } from "../middlewares/auth.middleware";
 
-const router = express.Router();
+const router: Router = Router();
 
 router.post("/login", authContoller.login);
 router.post("/otp/generate", authContoller.generateOtp);

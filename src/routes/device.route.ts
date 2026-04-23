@@ -1,7 +1,7 @@
-import * as express from "express";
+import { Router } from "express";
 import * as controller from "../controllers/device.controller";
 
-const router = express.Router();
+const router: Router = Router();
 
 router.post("/", controller.createDevice);
 router.get("/", controller.getDevices);

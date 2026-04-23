@@ -1,8 +1,8 @@
-import * as express from "express";
+import { Router } from "express";
 import * as WaitlistController from "../controllers/waitlist.controller";
 import { auth } from "../middlewares/auth.middleware";
 
-const router = express.Router();
+const router: Router = Router();
 
 // Public — anyone can join
 router.post("/join", WaitlistController.joinWaitlist);

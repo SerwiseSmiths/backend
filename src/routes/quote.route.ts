@@ -1,7 +1,7 @@
-import * as express from "express";
+import { Router } from "express";
 import * as quoteController from "../controllers/quote.contoller";
 
-const router = express.Router();
+const router: Router = Router();
 
 router.post("/", quoteController.createQuote);
 router.get("/", quoteController.getAllQuotes);

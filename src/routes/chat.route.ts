@@ -1,8 +1,8 @@
-import * as express from "express";
+import { Router } from "express";
 import { auth } from "../middlewares/auth.middleware";
 import * as chatController from "../controllers/chat.controller";
 
-const router = express.Router();
+const router: Router = Router();
 
 router.use(auth);
 
