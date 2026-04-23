@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
-import * as multer from "multer";
+import multer from "multer";
 import * as fs from "fs";
 import { uploadToCloudinary } from "../utils/upload.util";
 

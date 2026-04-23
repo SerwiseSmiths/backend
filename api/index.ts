@@ -1,31 +1,31 @@
 // app.ts
 import express from "express";
 import type { Application, Request, Response } from "express";
-import { errorHandler } from "./middlewares/errorHandler.middleware";
+import { errorHandler } from "../src/middlewares/errorHandler.middleware";
 import morgan from "morgan";
 import cors from "cors";
-import { isProd } from "./config/env.config";
+import { isProd } from "../src/config/env.config";
 
-import userRoutes from "./routes/user.route";
-import authRoutes from "./routes/auth.route";
-import addressRoutes from "./routes/address.route";
-import deviceRoutes from "./routes/device.route";
-import geocodeRoutes from "./routes/geocode.route";
-import complaintRoutes from "./routes/complaint.route";
-import quoteRoutes from "./routes/quote.route";
-import subscriptionRoutes from "./routes/subscription.route";
-import paymentRoutes from "./routes/payment.route";
-import selfRoutes from "./routes/self.route";
-import walletRoutes from "./routes/wallet.route";
-import notificationRoutes from "./routes/notification.route";
-import uploadRoutes from "./routes/upload.route";
+import userRoutes from "../src/routes/user.route";
+import authRoutes from "../src/routes/auth.route";
+import addressRoutes from "../src/routes/address.route";
+import deviceRoutes from "../src/routes/device.route";
+import geocodeRoutes from "../src/routes/geocode.route";
+import complaintRoutes from "../src/routes/complaint.route";
+import quoteRoutes from "../src/routes/quote.route";
+import subscriptionRoutes from "../src/routes/subscription.route";
+import paymentRoutes from "../src/routes/payment.route";
+import selfRoutes from "../src/routes/self.route";
+import walletRoutes from "../src/routes/wallet.route";
+import notificationRoutes from "../src/routes/notification.route";
+import uploadRoutes from "../src/routes/upload.route";
 
-import chatRoutes from "./routes/chat.route";
-import circleRoutes from "./routes/circle.route";
-import configRoutes from "./routes/config.route";
-import healthRoutes from "./routes/health.route";
-import waitlistRoutes from "./routes/waitlist.route";
-import contactRoutes from "./routes/contact.route";
+import chatRoutes from "../src/routes/chat.route";
+import circleRoutes from "../src/routes/circle.route";
+import configRoutes from "../src/routes/config.route";
+import healthRoutes from "../src/routes/health.route";
+import waitlistRoutes from "../src/routes/waitlist.route";
+import contactRoutes from "../src/routes/contact.route";
 
 const app: Application = express();
 app.use(cors());
@@ -53,7 +53,7 @@ app.use(`${BASE_URL}/config`, configRoutes);
 app.use(`${BASE_URL}/health`, healthRoutes);
 app.use(`${BASE_URL}/waitlist`, waitlistRoutes);
 app.use(`${BASE_URL}/contacts`, contactRoutes);
-// app.use(errorHandler);
+app.use(errorHandler);
 
 export default app;
 
