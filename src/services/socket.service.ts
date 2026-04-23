@@ -45,7 +45,7 @@ class RealtimeService {
                 // We'll update our local presence map based on client presence channels
                 // In Supabase, we'd typically subscribe to each user channel or use a global one
             })
-            .on('broadcast', { event: 'auth' }, (payload) => {
+            .on('broadcast', { event: 'auth' }, (payload: any) => {
                 const { userId } = payload;
                 this.userPresenceMap.set(userId, true);
                 console.log(`User ${userId} authenticated via Realtime`);
@@ -54,25 +54,25 @@ class RealtimeService {
                 // Broadcast presence change to other users
                 this.broadcastGlobal("presence:change", { userId, online: true });
             })
-            .on('broadcast', { event: 'typing:start' }, (payload) => {
+            .on('broadcast', { event: 'typing:start' }, (payload: any) => {
                 this.handleTypingStart(payload);
             })
-            .on('broadcast', { event: 'typing:stop' }, (payload) => {
+            .on('broadcast', { event: 'typing:stop' }, (payload: any) => {
                 this.handleTypingStop(payload);
             })
-            .on('broadcast', { event: 'message:send' }, (payload) => {
+            .on('broadcast', { event: 'message:send' }, (payload: any) => {
                 this.handleMessageSend(payload);
             })
-            .on('broadcast', { event: 'call:initiate' }, (payload) => {
+            .on('broadcast', { event: 'call:initiate' }, (payload: any) => {
                 this.handleCallInitiate(payload);
             })
-            .on('broadcast', { event: 'call:respond' }, (payload) => {
+            .on('broadcast', { event: 'call:respond' }, (payload: any) => {
                 this.handleCallRespond(payload);
             })
-            .on('broadcast', { event: 'circle:invite' }, (payload) => {
+            .on('broadcast', { event: 'circle:invite' }, (payload: any) => {
                 this.handleCircleInvite(payload);
             })
-            .subscribe((status) => {
+            .subscribe((status: any) => {
                 if (status === 'SUBSCRIBED') {
                     console.log('✅ Connected to Supabase Realtime (Admin Channel)');
                 }
